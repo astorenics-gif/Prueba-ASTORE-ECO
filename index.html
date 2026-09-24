@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASTORE ECO - Del Campo y la Ciudad a tu Mesa</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 2.5s infinite ease-in-out;
+        }
+        @keyframes drive-moto {
+            0% { left: 10%; top: 75%; }
+            40% { left: 45% ; top: 45%; }
+            75% { left: 70%; top: 30%; }
+            100% { left: 85%; top: 20%; }
+        }
+        .animate-moto {
+            animation: drive-moto 12s infinite alternate ease-in-out;
+        }
+
+        .home-ad-slide { min-height: 156px; }
+        #home-ad-track { touch-action: pan-y; }
+        @media (max-width: 380px) { .home-ad-slide { min-height: 148px; } }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen font-sans">
+
+    <!-- Contenedor simulación App Móvil -->
+    <div class="w-full max-w-md bg-white shadow-xl rounded-none sm:rounded-3xl overflow-hidden flex flex-col h-screen sm:h-[850px] relative">
+
+        <!-- TOAST NOTIFICACIÓN FLOTANTE -->
+        <div id="toast" class="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-4 py-3 rounded-2xl text-xs font-medium shadow-2xl flex items-center gap-2.5 transition-all duration-300 opacity-0 pointer-events-none z-50 backdrop-blur-md border border-gray-700">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+            <span id="toast-message">Producto agregado</span>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: CALIFICAR TIENDA Y REPARTIDOR       -->
+        <!-- ========================================== -->
+        <div id="modal-rating" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-xs sm:max-w-sm flex flex-col p-5 relative space-y-4 animate-fade-in text-gray-800">
+                <div class="text-center space-y-1">
+                    <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto text-lg shadow-inner">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-sm">Califica tu Experiencia</h3>
+                    <p class="text-[11px] text-gray-500">Ayúdanos a mejorar valorando al productor y al repartidor.</p>
+                </div>
+
+                <!-- Calificación Tienda -->
+                <div class="space-y-1.5 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <label class="font-bold text-xs text-gray-700 block">🌾 Calificación de la Tienda / Productor</label>
+                    <div class="flex justify-center gap-2 text-xl text-amber-400 py-1" id="store-stars-container">
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('store', 1)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('store', 2)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('store', 3)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('store', 4)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('store', 5)"></i>
+                    </div>
+                    <input type="text" id="store-comment" placeholder="Comentario sobre los productos..." class="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs focus:outline-none">
+                </div>
+
+                <!-- Calificación Repartidor -->
+                <div class="space-y-1.5 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <label class="font-bold text-xs text-gray-700 block">🛵 Calificación del Repartidor</label>
+                    <div class="flex justify-center gap-2 text-xl text-amber-400 py-1" id="driver-stars-container">
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('driver', 1)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('driver', 2)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('driver', 3)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('driver', 4)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-110 transition" onclick="setRating('driver', 5)"></i>
+                    </div>
+                    <input type="text" id="driver-comment" placeholder="Comentario sobre la entrega..." class="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs focus:outline-none">
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button onclick="closeRatingModal()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold text-xs hover:bg-gray-200 transition">Cancelar</button>
+                    <button onclick="submitRatings()" class="flex-1 bg-emerald-700 text-white py-3 rounded-2xl font-bold text-xs shadow-lg hover:bg-emerald-800 transition">Enviar Calificación</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VENTANA FLOTANTE (MODAL): DETALLE DE PRODUCTO -->
+        <!-- ========================================== -->
+        <div id="modal-product-detail" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-xs sm:max-w-sm flex flex-col max-h-[90vh] relative animate-fade-in">
+                <!-- Botón Cerrar Modal -->
+                <button onclick="closeProductModal()" class="absolute top-3 right-3 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center z-10 transition shadow-md">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+
+                <!-- Imagen y Badge -->
+                <div class="w-full h-48 bg-gray-100 relative flex-shrink-0">
+                    <img id="detail-img" src="" class="w-full h-full object-cover">
+                    <span id="detail-badge" class="absolute top-3 left-3 text-[10px] px-2.5 py-1 rounded-full font-bold shadow-md"></span>
+                </div>
+
+                <!-- Contenido Modal -->
+                <div class="p-4 space-y-3 overflow-y-auto flex-1">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span id="detail-store" class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider"></span>
+                            <h2 id="detail-name" class="font-bold text-base text-gray-800 mt-0.5"></h2>
+                        </div>
+                        <span id="detail-price" class="font-black text-emerald-700 text-lg"></span>
+                    </div>
+
+                    <div class="pt-2 border-t border-gray-100 space-y-1.5 text-xs text-gray-600">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-box text-emerald-600"></i>
+                            <span>Presentación: <strong id="detail-unit" class="text-gray-800"></strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-store text-emerald-600"></i>
+                            <span>Productor / Tienda: <strong id="detail-store-name" class="text-gray-800"></strong></span>
+                        </div>
+                        <div class="flex items-start gap-2 pt-1">
+                            <i class="fa-solid fa-circle-info text-amber-600 mt-0.5"></i>
+                            <p id="detail-desc" class="text-gray-500 text-[11px] leading-relaxed">
+                                Cargando descripción...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Sección dinámica de Extras / Acompañantes (Selección Múltiple) -->
+                    <div id="detail-extras-section" class="space-y-1.5 bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200 hidden">
+                        <label class="font-bold text-xs text-emerald-900 block flex items-center gap-1.5">
+                            <i class="fa-solid fa-utensils text-amber-600"></i> Elige tus Extras / Acompañantes (Múltiples):
+                        </label>
+                        <div id="detail-extras-options" class="space-y-1 text-xs">
+                            <!-- Se inyecta dinámicamente con checkboxes -->
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 border border-gray-100 rounded-2xl p-3 flex items-center justify-between">
+                        <span class="font-bold text-xs text-gray-800">Cantidad:</span>
+                        <div class="flex items-center gap-3">
+                            <button onclick="adjustDetailQty(-1)" class="w-7 h-7 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center font-bold hover:bg-gray-300 transition"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                            <span id="detail-qty" class="font-bold text-sm text-gray-800">1</span>
+                            <button onclick="adjustDetailQty(1)" class="w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold hover:bg-emerald-200 transition"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Botón Agregar -->
+                <div class="p-3 bg-white border-t border-gray-100 flex-shrink-0">
+                    <button onclick="addDetailToCart()" class="w-full bg-emerald-700 text-white py-3 rounded-2xl font-bold text-xs shadow-lg hover:bg-emerald-800 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-basket-shopping"></i>
+                        <span id="detail-add-btn-text">Agregar a la Canasta - S/ 0.00</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 1: INICIO (HOME) -->
+        <!-- ========================================== -->
+        <div id="view-home" class="app-view flex flex-col h-full">
+            <!-- Header -->
+            <div class="bg-emerald-700 text-white p-4 pt-5 shadow-md">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
+                            <i class="fa-solid fa-seedling text-sm"></i>
+                        </div>
+                        <span class="font-black text-lg tracking-wider text-white">ASTORE<span class="text-amber-400 font-light">ECO</span></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="bg-emerald-800 p-2 rounded-full relative hover:bg-emerald-900 transition" onclick="showNotifications()">
+                            <i class="fa-solid fa-bell text-sm"></i>
+                            <span id="astore-notif-badge" class="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full hidden"></span>
+                        </button>
+                        <div onclick="openProfile()" class="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center font-bold text-xs border-2 border-emerald-500 shadow-inner cursor-pointer" id="profile-avatar-initials">
+                            JD
+                        </div>
+                    </div>
+                </div>
+                <!-- Ubicación -->
+                <div class="bg-emerald-800/60 rounded-xl p-2.5 flex justify-between items-center backdrop-blur-sm">
+                    <div>
+                        <p class="text-[10px] text-emerald-200 uppercase tracking-wider font-medium">Entregar en</p>
+                        <div class="flex items-center gap-1 font-semibold text-xs cursor-pointer hover:text-emerald-200 transition" onclick="openMap()">
+                            <i class="fa-solid fa-location-dot text-amber-400"></i>
+                            <span>Pucallpa, Ucayali</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-emerald-300"></i>
+                        </div>
+                    </div>
+                    <span class="text-[10px] bg-emerald-900 text-emerald-200 px-2 py-1 rounded-lg font-medium cursor-pointer" onclick="openMap()">Ver Mapa</span>
+                </div>
+            </div>
+
+            <!-- Contenido Home -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+                <!-- Buscador de Productos y Herramientas Rápidas (Favoritos / Ofertas) -->
+                <div class="space-y-2">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="home-search-input" oninput="renderHomeProducts()" placeholder="Busca productos ecológicos, miel, pan..." 
+                            class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                    </div>
+                    <!-- Barra de herramientas Favoritos y Ofertas -->
+                    <div class="flex gap-2 overflow-x-auto pb-1">
+                        <div id="astore-radius-info" class="flex-1 min-w-[190px] text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 flex items-center gap-1">
+                            <i class="fa-solid fa-location-crosshairs"></i> Catálogo general activo
+                        </div>
+                        <button onclick="showFavorites()" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-bold whitespace-nowrap border border-rose-100 hover:bg-rose-100 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-heart"></i> Favoritos
+                        </button>
+                        <button onclick="renderPromotions()" class="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 text-[10px] font-bold whitespace-nowrap border border-amber-100 hover:bg-amber-100 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-tag"></i> Ofertas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carrusel publicitario ASTORE ECO -->
+                <section id="home-ad-carousel" class="relative overflow-hidden rounded-3xl shadow-lg" aria-label="Publicidad ASTORE ECO">
+                    <div id="home-ad-track" class="flex transition-transform duration-500 ease-out will-change-transform">
+                        <article class="home-ad-slide min-w-full bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-700 text-white p-5 relative overflow-hidden">
+                            <div class="absolute -right-10 -bottom-12 w-40 h-40 rounded-full bg-white/10"></div>
+                            <div class="absolute right-8 top-6 w-16 h-16 rounded-2xl bg-white/10 rotate-12 flex items-center justify-center">
+                                <i class="fa-solid fa-basket-shopping text-3xl"></i>
+                            </div>
+                            <div class="relative z-10 pr-20">
+                                <span class="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold">🌱 ASTORE ECO</span>
+                                <h2 class="font-black text-xl leading-tight mt-3">Directo a tu mesa<br><span class="text-amber-300">sin intermediarios</span></h2>
+                                <p class="text-xs text-emerald-50 mt-2 leading-relaxed">Compra directamente a negocios y productores locales.</p>
+                            </div>
+                        </article>
+
+                        <article class="home-ad-slide min-w-full bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white p-5 relative overflow-hidden">
+                            <div class="absolute -right-8 -bottom-10 w-36 h-36 rounded-full bg-white/10"></div>
+                            <div class="absolute right-8 top-6 w-16 h-16 rounded-2xl bg-white/15 -rotate-12 flex items-center justify-center">
+                                <i class="fa-solid fa-store text-3xl"></i>
+                            </div>
+                            <div class="relative z-10 pr-20">
+                                <span class="inline-flex items-center gap-1.5 bg-black/10 border border-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold">🏪 COMERCIO LOCAL</span>
+                                <h2 class="font-black text-xl leading-tight mt-3">Compra cerca.<br><span class="text-yellow-100">Apoya tu zona.</span></h2>
+                                <p class="text-xs text-orange-50 mt-2 leading-relaxed">Encuentra productos de tiendas y negocios de tu distrito.</p>
+                            </div>
+                        </article>
+
+                        <article class="home-ad-slide min-w-full bg-gradient-to-br from-teal-700 via-cyan-700 to-emerald-700 text-white p-5 relative overflow-hidden">
+                            <div class="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/10"></div>
+                            <div class="absolute right-8 top-6 w-16 h-16 rounded-2xl bg-white/10 rotate-6 flex items-center justify-center">
+                                <i class="fa-solid fa-leaf text-3xl"></i>
+                            </div>
+                            <div class="relative z-10 pr-20">
+                                <span class="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold">🥬 FRESCO Y LOCAL</span>
+                                <h2 class="font-black text-xl leading-tight mt-3">Del productor<br><span class="text-amber-300">a tu hogar</span></h2>
+                                <p class="text-xs text-teal-50 mt-2 leading-relaxed">Productos del campo y la ciudad, en un solo lugar.</p>
+                            </div>
+                        </article>
+                    </div>
+                    <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-20" id="home-ad-dots">
+                        <button type="button" class="home-ad-dot w-5 h-1.5 rounded-full bg-white transition-all" aria-label="Publicidad 1"></button>
+                        <button type="button" class="home-ad-dot w-1.5 h-1.5 rounded-full bg-white/50 transition-all" aria-label="Publicidad 2"></button>
+                        <button type="button" class="home-ad-dot w-1.5 h-1.5 rounded-full bg-white/50 transition-all" aria-label="Publicidad 3"></button>
+                    </div>
+                </section>
+
+                <!-- Listado de Productos General -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-gray-800 text-sm">Productos Disponibles</h3>
+                        <span class="text-[10px] text-emerald-700 font-semibold cursor-pointer hover:underline" onclick="renderHomeProducts()">Actualizar</span>
+                    </div>
+                    <div id="dynamic-products-container" class="space-y-3">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Bar Home -->
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-around items-center text-gray-400 shadow-lg">
+                <div onclick="switchView('view-home')" class="flex flex-col items-center text-emerald-700 cursor-pointer"><i class="fa-solid fa-house text-lg"></i><span class="text-[10px] mt-1 font-medium">Inicio</span></div>
+                <div onclick="switchView('view-cart')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer relative transition">
+                    <i class="fa-solid fa-basket-shopping text-lg"></i>
+                    <span class="cart-badge absolute -top-1 -right-2 bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                    <span class="text-[10px] mt-1 font-medium">Canasta</span>
+                </div>
+                <div onclick="openMap()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition">
+                    <i class="fa-solid fa-map-location-dot text-lg"></i>
+                    <span class="text-[10px] mt-1 font-medium">Mapa</span>
+                </div>
+                <div onclick="openProfile()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition"><i class="fa-solid fa-user text-lg"></i><span class="text-[10px] mt-1 font-medium">Perfil</span></div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA: MAPA INTERACTIVO (REQUIERE SESIÓN)  -->
+        <!-- ========================================== -->
+        <div id="view-map" class="app-view hidden flex flex-col h-full bg-gray-50">
+            <header class="bg-emerald-700 text-white p-4 flex justify-between items-center shadow-md z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchView('view-home')" class="w-8 h-8 bg-emerald-800 rounded-full flex items-center justify-center text-white"><i class="fa-solid fa-arrow-left text-sm"></i></button>
+                    <h1 class="font-bold text-base">🌱 ASTORE ECO - Mapa</h1>
+                </div>
+                <span class="text-[11px] bg-emerald-900 px-2.5 py-1 rounded-lg">Sesión Activa</span>
+            </header>
+
+            <div class="main-container flex-1 flex flex-col md:flex-row overflow-hidden relative pb-16">
+                <!-- Panel Lateral de información y productores -->
+                <div class="sidebar w-full md:w-[350px] bg-white p-4 shadow-md overflow-y-auto flex flex-col gap-4 z-10 max-h-[38vh] md:max-h-none">
+                    <div class="delivery-box bg-[#e8f5e9] p-3.5 rounded-xl border border-[#c8e6c9]">
+                        <h4 class="text-[#1b5e20] font-bold text-xs mb-1">📍 Punto de Entrega</h4>
+                        <p id="info-ubicacion" class="text-[11px] text-[#4f4f4f] leading-relaxed">Haz clic en cualquier parte del mapa o arrastra el marcador para fijar la dirección de tu pedido.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs font-bold text-[#2e7d32] uppercase tracking-wider mb-2 pb-1 border-b-2 border-[#e8f5e9]">Productores Locales</h3>
+                        <div class="producer-list flex flex-col gap-2.5" id="lista-productores">
+                            <!-- Se inyecta dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenedor del mapa Leaflet -->
+                <div class="map-wrapper flex-1 relative min-h-[250px] md:min-h-0">
+                    <div id="astore-map" class="w-full h-full"></div>
+                </div>
+            </div>
+
+            <!-- Tab Bar Mapa -->
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-around items-center text-gray-400 shadow-lg z-30">
+                <div onclick="switchView('view-home')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition"><i class="fa-solid fa-house text-lg"></i><span class="text-[10px] mt-1 font-medium">Inicio</span></div>
+                <div onclick="switchView('view-cart')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer relative transition">
+                    <i class="fa-solid fa-basket-shopping text-lg"></i>
+                    <span class="cart-badge absolute -top-1 -right-2 bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                    <span class="text-[10px] mt-1 font-medium">Canasta</span>
+                </div>
+                <div onclick="openMap()" class="flex flex-col items-center text-emerald-700 cursor-pointer"><i class="fa-solid fa-map-location-dot text-lg"></i><span class="text-[10px] mt-1 font-medium">Mapa</span></div>
+                <div onclick="openProfile()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition"><i class="fa-solid fa-user text-lg"></i><span class="text-[10px] mt-1 font-medium">Perfil</span></div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 3: CANASTA Y PAGOS (CHECKOUT) -->
+        <!-- ========================================== -->
+        <div id="view-cart" class="app-view hidden flex flex-col h-full">
+            <div class="bg-emerald-700 text-white p-4 pt-6 flex items-center justify-between shadow-md">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchView('view-home')" class="w-9 h-9 bg-emerald-800 rounded-full flex items-center justify-center text-white"><i class="fa-solid fa-arrow-left text-sm"></i></button>
+                    <h1 class="font-bold text-base">Tu Canasta ASTORE</h1>
+                </div>
+                <span class="text-xs bg-emerald-800 text-emerald-200 px-2 py-1 rounded-lg">Resumen</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-36 bg-gray-50">
+                <h3 class="font-bold text-gray-800 text-sm">Productos seleccionados</h3>
+                <div id="cart-items-container" class="space-y-3"></div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-amber-900 shadow-sm">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm"></i>
+                    <div>
+                        <span class="font-bold block">Aviso sobre productos de campo:</span> Los pedidos agrícolas se procesan con <strong class="underline">1 día de anticipación</strong> para asegurar su cosecha directa de la chacra a tu mesa.
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
+                    <h3 class="font-bold text-gray-800 text-sm">Teléfono de contacto</h3>
+                    <div class="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                        <div class="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-phone text-xs"></i>
+                        </div>
+                        <div class="w-full flex items-center">
+                            <span class="text-xs font-bold text-gray-500 mr-2">+51</span>
+                            <input type="tel" id="cart-phone-input" placeholder="961 234 567" maxlength="9" class="w-full bg-transparent font-bold text-xs text-gray-800 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800 text-sm">Dirección de entrega</h3>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="openMap()" class="text-[10px] bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-100 transition flex items-center gap-1 border border-amber-200">
+                                <i class="fa-solid fa-map-location-dot"></i> Ver Mapa
+                            </button>
+                            <button type="button" onclick="autoDetectAddress('delivery-address-input')" class="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-100 transition flex items-center gap-1 border border-emerald-200">
+                                <i class="fa-solid fa-location-crosshairs text-emerald-600"></i> GPS
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                        <div class="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-location-dot text-xs"></i>
+                        </div>
+                        <div class="w-full">
+                            <input type="text" id="delivery-address-input" placeholder="Jr. Tarapacá 456, Pucallpa" class="w-full bg-transparent font-bold text-xs text-gray-800 focus:outline-none pb-0.5">
+                            <input type="text" id="delivery-reference" placeholder="Referencia (ej. Portón negro, frente al parque)" class="w-full bg-transparent text-[11px] text-gray-500 mt-1 focus:outline-none border-b border-gray-200 pb-0.5">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-3">
+                    <h3 class="font-bold text-gray-800 text-sm">Medio de pago y beneficio</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center justify-between p-3 border border-emerald-500 bg-emerald-50/50 rounded-xl cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-percent"></i></div>
+                                <div>
+                                    <p class="font-bold text-xs text-gray-800">Pago adelantado (Yape / Plin)</p>
+                                    <p class="text-[10px] text-emerald-700 font-bold">¡5% de descuento inmediato!</p>
+                                </div>
+                            </div>
+                            <input type="radio" name="pago-modalidad" value="adelantado" checked class="accent-emerald-600" onchange="updateCartUI()">
+                        </label>
+                        
+                        <div id="yape-code-section" class="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-3.5 space-y-2.5 shadow-sm transition-all">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-qrcode text-amber-600"></i> Yapea al <span class="text-amber-600 font-extrabold">987 654 321</span>
+                                </span>
+                                <span class="text-[10px] bg-red-100 text-red-700 font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                                    <i class="fa-solid fa-asterisk text-[8px]"></i> Obligatorio
+                                </span>
+                            </div>
+
+                            <div class="relative">
+                                <input type="file" id="yape-receipt-input" accept="image/*" class="hidden" onchange="handleReceiptPreview(this)">
+                                <label for="yape-receipt-input" id="receipt-dropzone-label" class="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 bg-white hover:bg-emerald-50/60 rounded-xl p-3.5 cursor-pointer transition text-center group shadow-sm">
+                                    <div class="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm mb-1 group-hover:scale-110 transition shadow-sm">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-700 group-hover:text-emerald-800">Toca aquí para adjuntar tu captura</span>
+                                    <span class="text-[10px] text-gray-400 mt-0.5">Usa cámara o galería de tu celular</span>
+                                </label>
+
+                                <div id="receipt-preview-container" class="hidden bg-white border border-emerald-300 rounded-xl p-2.5 flex items-center justify-between gap-3 shadow-sm">
+                                    <div class="flex items-center gap-2.5 overflow-hidden">
+                                        <img id="receipt-thumbnail" src="" class="w-12 h-12 object-cover rounded-lg border border-gray-200 flex-shrink-0">
+                                        <div class="overflow-hidden">
+                                            <p class="text-xs font-bold text-gray-800 truncate" id="receipt-file-name">voucher.jpg</p>
+                                            <p class="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                                <i class="fa-solid fa-circle-check"></i> Captura lista para enviar
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="removeReceiptFile()" class="w-8 h-8 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center text-xs transition flex-shrink-0 shadow-sm" title="Cambiar imagen">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <label class="flex items-center justify-between p-3 border border-gray-200 bg-gray-50 rounded-xl cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                                <div>
+                                    <p class="font-bold text-xs text-gray-800">Pago contra entrega</p>
+                                    <p class="text-[10px] text-gray-400">Efectivo / Yape al recibir</p>
+                                </div>
+                            </div>
+                            <input type="radio" name="pago-modalidad" value="contraentrega" class="accent-emerald-600" onchange="updateCartUI()">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-2xl space-y-2">
+                <div id="cart-summary-details" class="space-y-1 text-xs"></div>
+                <div class="flex justify-between text-xs pt-1 border-t border-gray-100 font-extrabold">
+                    <span class="text-gray-700">Total a pagar:</span>
+                    <span class="text-emerald-700 text-base" id="cart-total-text">S/ 0.00</span>
+                </div>
+                <button onclick="proceedToCheckout()" class="w-full bg-emerald-700 text-white py-3 rounded-2xl font-bold text-sm shadow-lg hover:bg-emerald-800 transition flex items-center justify-center gap-2 mt-1">
+                    <span id="checkout-btn-text">Confirmar y Pagar S/ 0.00</span>
+                    <i class="fa-solid fa-circle-check text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 4: LOGIN / INICIO DE SESIÓN -->
+        <!-- ========================================== -->
+        <div id="view-login" class="app-view hidden flex flex-col h-full justify-between p-6 bg-gradient-to-b from-emerald-800 to-emerald-900 text-white">
+            <div class="pt-8 text-center space-y-2">
+                <div class="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg mx-auto">
+                    <i class="fa-solid fa-seedling"></i>
+                </div>
+                <h1 class="font-black text-xl tracking-wider">ASTORE<span class="text-amber-400 font-light">ECO</span></h1>
+                <p class="text-xs text-emerald-100">Inicia sesión para acceder al mapa y tus pedidos.</p>
+            </div>
+
+            <div class="bg-white text-gray-800 rounded-3xl p-5 shadow-2xl space-y-3">
+                <h2 class="font-bold text-sm text-gray-800 text-center">Iniciar Sesión</h2>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Número de Celular</label>
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2.5">
+                        <span class="text-xs font-bold text-gray-500 mr-2">+51</span>
+                        <input type="tel" id="login-phone" placeholder="961 234 567" maxlength="9" class="w-full bg-transparent text-sm focus:outline-none font-semibold text-gray-800">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">PIN de Acceso</label>
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2.5">
+                        <i class="fa-solid fa-lock text-gray-400 mr-3 text-sm"></i>
+                        <input type="password" id="login-pin" placeholder="••••••" maxlength="6" class="w-full bg-transparent text-sm focus:outline-none font-semibold tracking-widest text-gray-800">
+                    </div>
+                </div>
+                <!-- Checkbox Mantener sesión iniciada -->
+                <div class="flex items-center justify-between text-xs pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-gray-600">
+                        <input type="checkbox" id="login-persist" class="accent-emerald-600 w-4 h-4 rounded" checked>
+                        <span>Mantener sesión iniciada</span>
+                    </label>
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-emerald-700 text-white py-3 rounded-2xl font-bold text-sm shadow-lg hover:bg-emerald-800 transition flex items-center justify-center gap-2 mt-1">
+                    <span id="login-btn-text">Iniciar Sesión</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+                <div class="text-center pt-2">
+                    <p class="text-xs text-gray-500">¿No tienes cuenta? <span onclick="switchView('view-register')" class="text-emerald-700 font-bold cursor-pointer hover:underline">Regístrate aquí</span></p>
+                </div>
+            </div>
+            <div class="text-center pb-2">
+                <button onclick="switchView('view-home')" class="text-[11px] text-emerald-200 underline">Volver al Inicio</button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 4.1: REGISTRO DE CLIENTE -->
+        <!-- ========================================== -->
+        <div id="view-register" class="app-view hidden flex flex-col h-full justify-between p-6 bg-gradient-to-b from-emerald-800 to-emerald-900 text-white">
+            <div class="pt-4 text-center space-y-1">
+                <div class="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg mx-auto">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <h1 class="font-black text-lg tracking-wider">Crear Cuenta</h1>
+                <p class="text-xs text-emerald-100">Regístrate para habilitar el mapa y tus compras.</p>
+            </div>
+
+            <div class="bg-white text-gray-800 rounded-3xl p-4 shadow-2xl space-y-2.5">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Nombre Completo</label>
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2">
+                        <i class="fa-solid fa-user text-gray-400 mr-3 text-sm"></i>
+                        <input type="text" id="reg-name" placeholder="Juan Pérez" class="w-full bg-transparent text-sm focus:outline-none font-semibold text-gray-800">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Número de Celular</label>
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2">
+                        <span class="text-xs font-bold text-gray-500 mr-2">+51</span>
+                        <input type="tel" id="reg-phone" placeholder="961 234 567" maxlength="9" class="w-full bg-transparent text-sm focus:outline-none font-semibold text-gray-800">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Dirección de Entrega</label>
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2">
+                        <i class="fa-solid fa-location-dot text-amber-500 mr-3 text-sm"></i>
+                        <input type="text" id="reg-address" placeholder="Jr. Tarapacá 456, Pucallpa" class="w-full bg-transparent text-xs focus:outline-none font-semibold text-gray-800">
+                        <button type="button" onclick="autoDetectAddress('reg-address')" class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-bold hover:bg-emerald-200 transition ml-1 flex-shrink-0">
+                            <i class="fa-solid fa-location-crosshairs"></i> GPS
+                        </button>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">PIN de Acceso</label>
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2">
+                        <i class="fa-solid fa-lock text-gray-400 mr-3 text-sm"></i>
+                        <input type="password" id="reg-pin" placeholder="••••••" maxlength="6" class="w-full bg-transparent text-sm focus:outline-none font-semibold tracking-widest text-gray-800">
+                    </div>
+                </div>
+                <button onclick="handleRegister()" class="w-full bg-emerald-700 text-white py-2.5 rounded-2xl font-bold text-sm shadow-lg hover:bg-emerald-800 transition flex items-center justify-center gap-2 mt-1">
+                    <span>Registrarse y Acceder</span>
+                    <i class="fa-solid fa-circle-check text-xs"></i>
+                </button>
+                <div class="text-center pt-1">
+                    <p class="text-xs text-gray-500">¿Ya tienes cuenta? <span onclick="switchView('view-login')" class="text-emerald-700 font-bold cursor-pointer hover:underline">Inicia sesión</span></p>
+                </div>
+            </div>
+            <div class="text-center pb-2">
+                <button onclick="switchView('view-home')" class="text-[11px] text-emerald-200 underline">Volver al Inicio</button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 5: SEGUIMIENTO Y MAPA EN TIEMPO REAL -->
+        <!-- ========================================== -->
+        <div id="view-tracking" class="app-view hidden flex flex-col h-full bg-gray-50">
+            <div class="bg-emerald-700 text-white p-4 pt-6 text-center shadow-md">
+                <span class="bg-emerald-800 text-emerald-200 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">🌾 Pedido Registrado (1 Día Anticipación)</span>
+                <h1 class="font-bold text-lg mt-2">¡Pedido en Marcha! 🎉</h1>
+                <p class="text-xs text-emerald-100 mt-0.5">Seguimiento de ruta en vivo en Pucallpa</p>
+                <!-- Mensaje solicitado al finalizar la compra -->
+                <div class="mt-2 bg-amber-400 text-amber-950 font-black text-xs py-1.5 px-3 rounded-xl shadow-md inline-block tracking-wide">
+                    🙏 ¡DIOS BENDIGA TU DÍA!
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+                <!-- SIMULADOR DE MAPA EN TIEMPO REAL -->
+                <div class="w-full h-52 bg-slate-900 rounded-3xl overflow-hidden shadow-md relative border border-emerald-500/30 flex items-center justify-center">
+                    <div class="absolute inset-0 opacity-25 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    
+                    <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 50 160 Q 150 100, 220 120 T 350 50" fill="none" stroke="#10b981" stroke-width="4" stroke-dasharray="6 4" class="animate-pulse"/>
+                    </svg>
+
+                    <div class="absolute left-8 bottom-8 flex flex-col items-center">
+                        <div class="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs shadow-lg animate-pulse-slow">
+                            <i class="fa-solid fa-seedling"></i>
+                        </div>
+                        <span class="text-[9px] bg-gray-900/90 text-amber-300 px-2 py-0.5 rounded-full font-bold mt-1 border border-amber-500/30">Finca Chacra</span>
+                    </div>
+
+                    <div class="absolute right-8 top-8 flex flex-col items-center">
+                        <div class="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs shadow-lg animate-pulse-slow">
+                            <i class="fa-solid fa-house-chimney"></i>
+                        </div>
+                        <span class="text-[9px] bg-gray-900/90 text-emerald-300 px-2 py-0.5 rounded-full font-bold mt-1 border border-emerald-500/30">Tu Domicilio</span>
+                    </div>
+
+                    <div class="absolute animate-moto z-10 flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2">
+                        <div class="w-9 h-9 bg-emerald-500 text-gray-900 rounded-full flex items-center justify-center text-sm shadow-2xl font-bold ring-4 ring-emerald-400/40">
+                            <i class="fa-solid fa-motorcycle"></i>
+                        </div>
+                        <span class="text-[9px] bg-emerald-900 text-white px-2 py-0.5 rounded-full font-extrabold mt-1 shadow-md whitespace-nowrap border border-emerald-400">En ruta</span>
+                    </div>
+
+                    <div class="absolute bottom-3 right-3 bg-gray-900/80 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-xl border border-gray-700 flex items-center gap-1.5 shadow-lg">
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
+                        <span>GPS Activo (Pucallpa)</span>
+                    </div>
+                </div>
+
+                <!-- LÍNEA DE TIEMPO DE ESTADOS -->
+                <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm space-y-4">
+                    <h3 class="font-bold text-gray-800 text-sm">Estado del Pedido</h3>
+                    
+                    <div class="space-y-3 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-emerald-200 text-xs">
+                        <div class="flex items-start gap-3 relative">
+                            <div class="w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs flex-shrink-0 z-10 shadow-sm"><i class="fa-solid fa-check"></i></div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">1. Pedido Confirmado & Pago Validado</h4>
+                                <p class="text-[11px] text-gray-400">Recibido y registrado correctamente en el sistema ASTORE ECO.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 relative">
+                            <div class="w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs flex-shrink-0 z-10 shadow-sm animate-pulse"><i class="fa-solid fa-seedling"></i></div>
+                            <div>
+                                <h4 class="font-bold text-emerald-700">2. Cosecha Programada en Chacra</h4>
+                                <p class="text-[11px] text-gray-500">El agricultor está recolectando los productos frescos (1 día de anticipación).</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 relative">
+                            <div class="w-7 h-7 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-xs flex-shrink-0 z-10"><i class="fa-solid fa-motorcycle"></i></div>
+                            <div>
+                                <h4 class="font-bold text-gray-400">3. En Ruta de Reparto</h4>
+                                <p class="text-[11px] text-gray-400">El motorizado saldrá hacia tu dirección en Pucallpa.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 relative">
+                            <div class="w-7 h-7 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-xs flex-shrink-0 z-10"><i class="fa-solid fa-house-chimney"></i></div>
+                            <div>
+                                <h4 class="font-bold text-gray-400">4. Entregado en tu Mesa</h4>
+                                <p class="text-[11px] text-gray-400">Disfruta tus productos naturales directos del campo.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="assigned-driver-box" class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hidden space-y-2">
+                    <span class="font-bold text-xs text-gray-800 block">🛵 Repartidor Asignado:</span>
+                    <p id="assigned-driver-name" class="text-xs text-emerald-700 font-semibold"></p>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-2xl">
+                <button onclick="switchView('view-home')" class="w-full bg-emerald-700 text-white py-3 rounded-2xl font-bold text-sm shadow-lg hover:bg-emerald-800 transition flex items-center justify-center gap-2">
+                    <span>Volver al Inicio</span>
+                    <i class="fa-solid fa-house text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA: CATÁLOGO COMPLETO DE TIENDA -->
+        <!-- ========================================== -->
+        <div id="view-store-catalog" class="app-view hidden flex flex-col h-full bg-gray-50">
+            <header class="bg-emerald-700 text-white p-4 pt-5 shadow-md">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeStoreCatalog()" class="w-9 h-9 bg-emerald-800 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></button>
+                    <div class="flex-1 min-w-0">
+                        <h1 id="catalog-store-name" class="font-bold text-base truncate">Catálogo de la tienda</h1>
+                        <p id="catalog-store-meta" class="text-[10px] text-emerald-100 truncate"></p>
+                    </div>
+                    <button id="catalog-favorite-btn" onclick="toggleStoreFavorite()" class="w-9 h-9 bg-emerald-800 rounded-full flex items-center justify-center"><i class="fa-regular fa-heart"></i></button>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+                <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+                        <input id="store-catalog-search" oninput="renderStoreCatalogProducts()" class="w-full text-sm outline-none" placeholder="Buscar en esta tienda...">
+                    </div>
+                </div>
+                <div id="catalog-store-info" class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm"></div>
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-gray-800 text-sm">Todos los productos</h3>
+                        <span id="catalog-product-count" class="text-[10px] text-gray-400"></span>
+                    </div>
+                    <div id="store-catalog-products" class="space-y-3"></div>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-around items-center text-gray-400 shadow-lg">
+                <div onclick="switchView('view-home')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer"><i class="fa-solid fa-house text-lg"></i><span class="text-[10px] mt-1">Inicio</span></div>
+                <div onclick="switchView('view-cart')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer relative"><i class="fa-solid fa-basket-shopping text-lg"></i><span class="cart-badge absolute -top-1 -right-2 bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span><span class="text-[10px] mt-1">Canasta</span></div>
+                <div onclick="openMap()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer"><i class="fa-solid fa-map-location-dot text-lg"></i><span class="text-[10px] mt-1">Mapa</span></div>
+                <div onclick="openProfile()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer"><i class="fa-solid fa-user text-lg"></i><span class="text-[10px] mt-1">Perfil</span></div>
+            </div>
+        </div>
+
+        <div id="view-profile" class="app-view hidden flex flex-col h-full">
+            <div class="bg-emerald-700 text-white p-4 pt-6 flex items-center justify-between shadow-md">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchView('view-home')" class="w-9 h-9 bg-emerald-800 rounded-full flex items-center justify-center text-white"><i class="fa-solid fa-arrow-left text-sm"></i></button>
+                    <h1 class="font-bold text-base">Mi Perfil ASTORE</h1>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-24 bg-gray-50">
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center gap-4">
+                    <div class="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center font-bold text-white text-xl border-4 border-emerald-50" id="profile-avatar-letters">US</div>
+                    <div>
+                        <h2 class="font-bold text-gray-800 text-sm" id="profile-name-text">Usuario ECO</h2>
+                        <p class="text-xs text-emerald-700 font-semibold mt-1" id="profile-phone-text">+51 961 234 567</p>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-1">
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Dirección Guardada</p>
+                    <p class="text-xs text-gray-800 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-amber-500"></i>
+                        <span id="profile-address-text">Jr. Tarapacá 456, Pucallpa</span>
+                    </p>
+                </div>
+
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800 text-sm">Mis Pedidos Realizados</h3>
+                        <span class="text-[10px] text-emerald-700 font-semibold cursor-pointer hover:underline" onclick="renderProfileOrders()">Actualizar</span>
+                    </div>
+                    <div id="profile-orders-container" class="space-y-2.5 max-h-52 overflow-y-auto">
+                        <p class="text-xs text-gray-400 text-center py-2">No tienes pedidos recientes.</p>
+                    </div>
+                </div>
+
+                <div onclick="logout()" class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between text-xs text-red-600 cursor-pointer hover:bg-red-50/50 transition">
+                    <span class="font-bold">Cerrar Sesión</span>
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-around items-center text-gray-400 shadow-lg">
+                <div onclick="switchView('view-home')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition"><i class="fa-solid fa-house text-lg"></i><span class="text-[10px] mt-1 font-medium">Inicio</span></div>
+                <div onclick="switchView('view-cart')" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer relative transition">
+                    <i class="fa-solid fa-basket-shopping text-lg"></i>
+                    <span class="cart-badge absolute -top-1 -right-2 bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                    <span class="text-[10px] mt-1 font-medium">Canasta</span>
+                </div>
+                <div onclick="openMap()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition"><i class="fa-solid fa-map-location-dot text-lg"></i><span class="text-[10px] mt-1 font-medium">Mapa</span></div>
+                <div onclick="openProfile()" class="flex flex-col items-center hover:text-emerald-700 cursor-pointer transition"><i class="fa-solid fa-user text-lg"></i><span class="text-[10px] mt-1 font-medium">Perfil</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal de notificaciones y favoritos flotantes -->
+    <div id="astore-enhancements-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="astore-enhancements-title" class="font-black text-gray-800">ASTORE ECO</h3>
+                <button onclick="closeAstoreEnhancementModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="astore-enhancements-content"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Script General y Gestión del Mapa Leaflet -->
+    <script>
+        let cart = [];
+        let currentUser = null;
+        let loginIntent = 'profile'; 
+        let currentDetailProduct = null;
+        
+        let astoreMapInstance = null;
+        let marcadoresProductores = {};
+        let markerCliente = null;
+
+        let currentRatingOrderId = null;
+        let currentStoreStars = 5;
+        let currentDriverStars = 5;
+
+        // Versículos aleatorios al abrir la app
+        function showRandomVerseOnOpen() {
+            const verses = [
+                "“Jehová es mi pastor; nada me faltará.” - Salmos 23:1",
+                "“Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia.” - Proverbios 3:5",
+                "“Todo lo puedo en Cristo que me fortalece.” - Filipenses 4:13",
+                "“Encomienda a Jehová tus obras, y tus pensamientos serán afirmados.” - Proverbios 16:3",
+                "“El Señor es mi fortaleza y mi escudo; en él confió mi corazón.” - Salmos 28:7",
+                "“Lámpara es a mis pies tu palabra, y lumbrera a mi camino.” - Salmos 119:105"
+            ];
+            const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+            setTimeout(() => {
+                showToast(`📖 ${randomVerse}`);
+            }, 1000);
+        }
+
+        function initDefaultDataIfNeeded() {
+            let stores = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+            if (stores.length === 0) {
+                stores = [
+                    {
+                        name: "Finca Don Carlos",
+                        category: "Campo",
+                        phone: "987654321",
+                        pin: "123456",
+                        address: "Ucayali • Cosecha con 1 día de anticipación",
+                        desc: "Cítricos y hortalizas ecológicas.",
+                        products: [
+                            { name: "Limón Sutil Orgánico", price: 4.50, unit: "1 kg", desc: "Limón sutil fresco cultivado en chacra orgánica de Ucayali.", img: "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&q=80&w=200", extras: ["Miel 50ml", "Bolsa ecológica"], promotion: "Oferta -10%" },
+                            { name: "Miel de Abeja Pura", price: 15.00, unit: "500 ml", desc: "Miel 100% pura de abeja de bosques naturales.", img: "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=200", extras: ["Cuchara de madera"] }
+                        ]
+                    },
+                    {
+                        name: "Panadería & Bodega El Artesano",
+                        category: "Ciudad",
+                        phone: "912345678",
+                        pin: "654321",
+                        address: "Centro de Pucallpa • Stock inmediato",
+                        desc: "Pan artesanal, café y abarrotes urbanos.",
+                        products: [
+                            { name: "Juane de Gallina", price: 15.00, unit: "unidad", desc: "Tradicional juane de arroz con gallina de chacra, envuelto y cocido en hoja de bijao.", img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=200", extras: ["Refresco de Cocona (+S/ 2.00)", "Refresco de CamunCamu (+S/ 2.50)"] },
+                            { name: "Pan Integral Artesanal", price: 6.00, unit: "Unidad 500g", desc: "Pan integral horneado diariamente con granos seleccionados.", img: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=200", extras: ["Gaseosa personal 500ml", "Refresco de Cocona"] }
+                        ]
+                    }
+                ];
+                localStorage.setItem('astoreeco_stores', JSON.stringify(stores));
+            }
+
+            if (!localStorage.getItem('astoreeco_clients')) {
+                const defaultClients = [
+                    { name: "Juan Pérez", phone: "961234567", pin: "1234", address: "Jr. Tarapacá 456, Pucallpa" }
+                ];
+                localStorage.setItem('astoreeco_clients', JSON.stringify(defaultClients));
+            }
+
+            if (!localStorage.getItem('astoreeco_drivers')) {
+                const defaultDrivers = [
+                    { name: "Carlos Mendoza", vehicle: "Moto Linear Honda", phone: "991122334" }
+                ];
+                localStorage.setItem('astoreeco_drivers', JSON.stringify(defaultDrivers));
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initDefaultDataIfNeeded();
+
+            const savedSession = localStorage.getItem('astoreeco_current_user');
+            if (savedSession) {
+                try {
+                    currentUser = JSON.parse(savedSession);
+                    updateProfileUI();
+                } catch (e) {
+                    localStorage.removeItem('astoreeco_current_user');
+                }
+            }
+
+            renderHomeProducts();
+            showRandomVerseOnOpen();
+            updateNotificationBadge();
+        });
+
+        window.addEventListener('storage', (e) => {
+            if (e.key && e.key.startsWith('astoreeco_')) {
+                renderHomeProducts();
+            }
+        });
+
+        function openMap() {
+            if (currentUser) {
+                switchView('view-map');
+                setTimeout(() => {
+                    initAstoreMap();
+                }, 150);
+            } else {
+                loginIntent = 'map';
+                showToast('🔒 Inicia sesión para acceder al Mapa de Productores');
+                document.getElementById('login-btn-text').textContent = 'Ingresar para ver el Mapa';
+                switchView('view-login');
+            }
+        }
+
+        function initAstoreMap() {
+            if (astoreMapInstance) {
+                astoreMapInstance.invalidateSize();
+                return;
+            }
+
+            astoreMapInstance = L.map('astore-map').setView([-8.3791, -74.5539], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(astoreMapInstance);
+
+            const productoresAstore = [
+                { id: 1, name: 'EcoFundo San José', lat: -8.3850, lng: -74.5600, productos: 'Plátano, Yuca, Papaya, Limón' },
+                { id: 2, name: 'AgroSelva Producción', lat: -8.3720, lng: -74.5450, productos: 'Cacao orgánico, Miel de abeja, Sacha Inchi' },
+                { id: 3, name: 'Cooperativa Agraria Ucayali', lat: -8.3910, lng: -74.5320, productos: 'Frijol caupí, Maíz amarillo, Plátano deshidratado' }
+            ];
+
+            const listaContenedor = document.getElementById('lista-productores');
+            listaContenedor.innerHTML = '';
+
+            productoresAstore.forEach(prod => {
+                const marker = L.marker([prod.lat, prod.lng]).addTo(astoreMapInstance);
+                
+                marker.bindPopup(`
+                    <div style="font-family: sans-serif;">
+                        <h4 style="margin: 0 0 5px 0; color: #2e7d32;">${prod.name}</h4>
+                        <p style="margin: 0 0 8px 0; font-size: 13px;"><b>Ofrece:</b> ${prod.productos}</p>
+                        <button onclick="verCatalogoMap(${prod.id})" style="background: #2e7d32; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Ver Catálogo</button>
+                    </div>
+                `);
+
+                marcadoresProductores[prod.id] = marker;
+
+                const card = document.createElement('div');
+                card.className = 'producer-card bg-[#fdfdfd] border border-[#e0e0e0] border-l-4 border-l-[#2e7d32] p-3 rounded-md cursor-pointer hover:bg-[#f1f8f1] transition';
+                card.innerHTML = `
+                    <h4 class="text-[#2e7d32] font-bold text-xs mb-1">${prod.name}</h4>
+                    <p class="text-[11px] text-[#666] mb-2">${prod.productos}</p>
+                    <button class="bg-[#2e7d32] text-white text-[10px] px-2.5 py-1 rounded font-bold hover:bg-[#1b5e20] transition" onclick="enfocarProductor(${prod.lat}, ${prod.lng}, ${prod.id})">Ver en el mapa</button>
+                `;
+                listaContenedor.appendChild(card);
+            });
+
+            astoreMapInstance.on('click', function(e) {
+                const { lat, lng } = e.latlng;
+                actualizarUbicacionClienteMap(lat, lng);
+            });
+
+            const savedLoc = localStorage.getItem('cliente_ubicacion');
+            if (savedLoc) {
+                try {
+                    const parsed = JSON.parse(savedLoc);
+                    actualizarUbicacionClienteMap(parsed.lat, parsed.lng, false);
+                } catch(e) {}
+            }
+        }
+
+        function actualizarUbicacionClienteMap(lat, lng, openPopup = true) {
+            const clienteHouseIcon = L.divIcon({
+                className: 'custom-house-marker',
+                html: `<div style="background-color: #059669; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border: 3px solid white;">
+                         <i class="fa-solid fa-house text-sm"></i>
+                       </div>`,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -18]
+            });
+
+            if (markerCliente) {
+                markerCliente.setLatLng([lat, lng]);
+            } else {
+                markerCliente = L.marker([lat, lng], { draggable: true, icon: clienteHouseIcon }).addTo(astoreMapInstance);
+                markerCliente.on('dragend', function() {
+                    const pos = markerCliente.getLatLng();
+                    guardarYMostrarUbicacionMap(pos.lat, pos.lng);
+                });
+            }
+
+            if (openPopup) {
+                markerCliente.bindPopup("<b>🏠 Tu Ubicación de Entrega</b><br>Arrastra este icono si deseas ajustar el punto exacto.").openPopup();
+            }
+            guardarYMostrarUbicacionMap(lat, lng);
+        }
+
+        function guardarYMostrarUbicacionMap(lat, lng) {
+            const datosUbicacion = { lat, lng, fecha: new Date().toISOString() };
+            localStorage.setItem('cliente_ubicacion', JSON.stringify(datosUbicacion));
+
+            const infoEl = document.getElementById('info-ubicacion');
+            if (infoEl) {
+                infoEl.innerHTML = `
+                    <b>Dirección seleccionada:</b> Jr. Tarapacá 456, Pucallpa<br>
+                    <span style="color: #2e7d32; font-weight: 600;">✔ Ubicación de entrega registrada correctamente.</span>
+                `;
+            }
+
+            const deliveryInput = document.getElementById('delivery-address-input');
+            if (deliveryInput) {
+                deliveryInput.value = `Jr. Tarapacá 456, Pucallpa`;
+            }
+        }
+
+        function enfocarProductor(lat, lng, id) {
+            if (astoreMapInstance) {
+                astoreMapInstance.setView([lat, lng], 15, { animate: true });
+                if (marcadoresProductores[id]) {
+                    marcadoresProductores[id].openPopup();
+                }
+            }
+        }
+
+        function verCatalogoMap(id) {
+            const productoresAstore = [
+                { id: 1, name: 'EcoFundo San José', productos: 'Plátano, Yuca, Papaya, Limón' },
+                { id: 2, name: 'AgroSelva Producción', productos: 'Cacao orgánico, Miel de abeja, Sacha Inchi' },
+                { id: 3, name: 'Cooperativa Agraria Ucayali', productos: 'Frijol caupí, Maíz amarillo, Plátano deshidratado' }
+            ];
+            const prod = productoresAstore.find(p => p.id === id);
+            if (prod) {
+                showToast(`Catálogo de ${prod.name}: ${prod.productos}`);
+            }
+        }
+
+        function handleReceiptPreview(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('receipt-thumbnail').src = e.target.result;
+                    document.getElementById('receipt-file-name').textContent = file.name;
+                    document.getElementById('receipt-dropzone-label').classList.add('hidden');
+                    document.getElementById('receipt-preview-container').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeReceiptFile() {
+            const input = document.getElementById('yape-receipt-input');
+            input.value = '';
+            document.getElementById('receipt-dropzone-label').classList.remove('hidden');
+            document.getElementById('receipt-preview-container').classList.add('hidden');
+        }
+
+        function autoDetectAddress(elementId) {
+            showToast('Obteniendo dirección GPS...');
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        document.getElementById(elementId).value = `Av. Centenario 1230, Pucallpa`;
+                        showToast('¡Dirección detectada con éxito!');
+                    },
+                    (error) => {
+                        document.getElementById(elementId).value = "Jr. Yarinacocha Mz. B Lt. 12, Pucallpa";
+                        showToast('GPS no disponible, usando dirección sugerida.');
+                    },
+                    { timeout: 8000, enableHighAccuracy: true }
+                );
+            } else {
+                showToast('Geolocalización no soportada.');
+                document.getElementById(elementId).value = "Jr. Tarapacá 456, Pucallpa";
+            }
+        }
+
+        function parseExtras(rawExtras) {
+            if (!rawExtras) return [];
+            if (Array.isArray(rawExtras)) {
+                return rawExtras.map(item => {
+                    if (typeof item === 'object' && item !== null) {
+                        return {
+                            name: item.name || String(item),
+                            price: parseFloat(item.price) || 0
+                        };
+                    }
+                    const str = String(item).trim();
+                    let price = 0;
+                    const match = str.match(/\(\+S\/\s*([0-9.]+)\)/i);
+                    if (match) {
+                        price = parseFloat(match[1]) || 0;
+                    }
+                    return { name: str, price: price };
+                });
+            }
+            if (typeof rawExtras === 'string' && rawExtras.trim() !== '') {
+                return rawExtras.split(',').map(s => {
+                    const str = s.trim();
+                    let price = 0;
+                    const match = str.match(/\(\+S\/\s*([0-9.]+)\)/i);
+                    if (match) {
+                        price = parseFloat(match[1]) || 0;
+                    }
+                    return { name: str, price: price };
+                }).filter(i => i.name);
+            }
+            return [];
+        }
+
+        function getAllProducts() {
+            let allProds = [];
+            const stores = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+            const globalProducts = JSON.parse(localStorage.getItem('astoreeco_products')) || [];
+            const fieldCrops = JSON.parse(localStorage.getItem('astoreeco_field_crops')) || [];
+
+            stores.forEach(store => {
+                const storeProdsFromPanel = globalProducts.filter(p => p.storePhone === store.phone || p.storeName === store.name);
+                const storeProds = storeProdsFromPanel.length > 0 
+                    ? storeProdsFromPanel.map(p => ({
+                        name: p.name,
+                        price: parseFloat(p.price) || 0,
+                        unit: p.unit || 'unidad',
+                        img: p.image || p.img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200',
+                        storeName: store.name,
+                        storePhone: store.phone || '',
+                        category: store.category,
+                        desc: p.desc || '',
+                        promotion: p.promotion || '',
+                        extras: parseExtras(p.extras || p.subproducts || p.acompanamientos)
+                      }))
+                    : (store.products || []).map(p => ({
+                        name: p.name,
+                        price: typeof p.price === 'number' ? p.price : parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0,
+                        unit: p.unit || 'unidad',
+                        img: p.img || p.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200',
+                        storeName: store.name,
+                        storePhone: store.phone || '',
+                        category: store.category,
+                        desc: p.desc || '',
+                        promotion: p.promotion || '',
+                        extras: parseExtras(p.extras || p.subproducts || p.acompanamientos)
+                      }));
+                allProds = allProds.concat(storeProds);
+            });
+
+            fieldCrops.forEach(c => {
+                const numericPrice = typeof c.price === 'number' ? c.price : parseFloat(String(c.price).replace(/[^0-9.]/g, '')) || 0;
+                allProds.push({
+                    name: c.name,
+                    price: numericPrice,
+                    unit: c.minSale || c.stock || '1 kg',
+                    img: c.img || c.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200',
+                    storeName: c.storeName || c.producerName || 'Finca Don Carlos (Productor)',
+                    storePhone: c.storePhone || c.producerPhone || '',
+                    category: c.category || 'Campo',
+                    desc: c.desc || '',
+                    promotion: c.promotion || '',
+                    extras: parseExtras(c.extras || c.subproducts || c.acompanamientos)
+                });
+            });
+
+            return allProds;
+        }
+
+        function escapeJsText(value) {
+            return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
+        }
+
+        function openStoreCatalog(storePhone, storeName) {
+            const stores = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+            let store = stores.find(s => String(s.phone || '') === String(storePhone || ''));
+            if (!store && storeName) store = stores.find(s => String(s.name || '').trim().toLowerCase() === String(storeName || '').trim().toLowerCase());
+            if (!store) {
+                store = { name: storeName || 'Tienda', phone: storePhone || '', products: [] };
+            }
+            currentStoreCatalog = store;
+            const nameEl = document.getElementById('catalog-store-name');
+            const metaEl = document.getElementById('catalog-store-meta');
+            const infoEl = document.getElementById('catalog-store-info');
+            if (nameEl) nameEl.textContent = store.name || storeName || 'Tienda';
+            if (metaEl) metaEl.textContent = `${store.category || 'Tienda'} • ${store.address || 'Ubicación no registrada'}`;
+            if (infoEl) infoEl.innerHTML = `<div class="flex items-center justify-between gap-3"><div><p class="font-bold text-sm text-gray-800">${store.name || storeName || 'Tienda'}</p><p class="text-[11px] text-gray-500 mt-1">${store.desc || 'Catálogo completo de productos disponibles.'}</p></div><span class="text-[10px] px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold">${isStoreOpen(store) ? '🟢 Abierto' : '🔴 Cerrado'}</span></div>`;
+            updateStoreFavoriteButton();
+            const search = document.getElementById('store-catalog-search');
+            if (search) search.value = '';
+            renderStoreCatalogProducts();
+            switchView('view-store-catalog');
+        }
+
+        let currentStoreCatalog = null;
+
+        function getStoreCatalogProducts(store) {
+            if (!store) return [];
+            const globalProducts = JSON.parse(localStorage.getItem('astoreeco_products')) || [];
+            const byPhone = globalProducts.filter(p => store.phone && String(p.storePhone || '') === String(store.phone));
+            const byName = globalProducts.filter(p => !store.phone && String(p.storeName || '').trim().toLowerCase() === String(store.name || '').trim().toLowerCase());
+            const source = (byPhone.length ? byPhone : byName);
+            let products = source.map(p => ({...p, storeName: store.name, storePhone: store.phone || p.storePhone || '', category: p.category || store.category, price: parseFloat(p.price) || 0, img: p.image || p.img || '', unit: p.unit || 'unidad', desc: p.desc || '', promotion: p.promotion || '', extras: parseExtras(p.extras || p.subproducts || p.acompanamientos)}));
+            if (!products.length && Array.isArray(store.products)) {
+                products = store.products.map(p => ({...p, storeName: store.name, storePhone: store.phone || '', category: p.category || store.category, price: parseFloat(p.price) || 0, img: p.image || p.img || '', unit: p.unit || 'unidad', desc: p.desc || '', promotion: p.promotion || '', extras: parseExtras(p.extras || p.subproducts || p.acompanamientos)}));
+            }
+            const fieldCrops = JSON.parse(localStorage.getItem('astoreeco_field_crops')) || [];
+            fieldCrops.filter(c => (store.phone && String(c.storePhone || c.producerPhone || '') === String(store.phone)) || (!store.phone && String(c.storeName || c.producerName || '').trim().toLowerCase() === String(store.name || '').trim().toLowerCase())).forEach(c => products.push({name:c.name, price:parseFloat(c.price ?? c.retailPrice) || 0, unit:c.minSale || c.unit || 'kg', img:c.img || c.image || '', storeName:store.name, storePhone:store.phone || c.storePhone || '', category:'Campo', desc:c.desc || '', promotion:c.promotion || '', extras:parseExtras(c.extras || c.subproducts || c.acompanamientos)}));
+            const seen = new Set();
+            return products.filter(p => { const key = `${p.name}|${p.storePhone}`; if(seen.has(key)) return false; seen.add(key); return true; });
+        }
+
+        function isStoreOpen(store) {
+            if (!store) return false;
+            if (typeof store.isOpen === 'boolean') return store.isOpen;
+            if (typeof store.open === 'boolean') return store.open;
+            const opening = store.openTime || store.openingTime;
+            const closing = store.closeTime || store.closingTime;
+            if (!opening || !closing) return true;
+            const now = new Date();
+            const [oh, om] = String(opening).split(':').map(Number);
+            const [ch, cm] = String(closing).split(':').map(Number);
+            const current = now.getHours() * 60 + now.getMinutes();
+            const from = oh * 60 + om, to = ch * 60 + cm;
+            return from <= to ? current >= from && current <= to : current >= from || current <= to;
+        }
+
+        function renderStoreCatalogProducts() {
+            const container = document.getElementById('store-catalog-products');
+            if (!container || !currentStoreCatalog) return;
+            const q = (document.getElementById('store-catalog-search')?.value || '').toLowerCase().trim();
+            const products = getStoreCatalogProducts(currentStoreCatalog).filter(p => !q || String(p.name).toLowerCase().includes(q) || String(p.desc || '').toLowerCase().includes(q));
+            const count = document.getElementById('catalog-product-count');
+            if (count) count.textContent = `${products.length} producto${products.length === 1 ? '' : 's'}`;
+            if (!products.length) { container.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">Esta tienda aún no tiene productos publicados.</p>'; return; }
+            container.innerHTML = products.map(p => {
+                const extrasJson = encodeURIComponent(JSON.stringify(p.extras || []));
+                const name = escapeJsText(p.name), storeName = escapeJsText(p.storeName), desc = escapeJsText(p.desc || ''), img = escapeJsText(p.img || ''), storePhone = escapeJsText(p.storePhone || '');
+                return `<div class="bg-white border border-gray-100 rounded-2xl p-3 shadow-sm flex items-center gap-3 cursor-pointer hover:border-emerald-300 transition" onclick="openProductDetail('${name}', ${Number(p.price)||0}, '${escapeJsText(p.unit||'unidad')}', '${img}', '${storeName}', '${escapeJsText(p.category||'')}', '${desc}', '${extrasJson}', '${storePhone}')"><div class="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0"><img src="${p.img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200'}" class="w-full h-full object-cover"></div><div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 truncate">${p.name}</h4><p class="text-[11px] text-gray-400 truncate">${p.desc || p.unit || ''}</p><div class="flex justify-between items-center mt-2"><span class="font-extrabold text-emerald-700 text-sm">S/ ${(Number(p.price)||0).toFixed(2)}</span><button onclick="event.stopPropagation(); addToCartQuick('${name}', ${Number(p.price)||0}, '${img}', '${escapeJsText(p.category||'')}')" class="bg-emerald-700 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs"><i class="fa-solid fa-plus"></i></button></div></div></div>`;
+            }).join('');
+        }
+
+        function closeStoreCatalog() { currentStoreCatalog = null; switchView('view-home'); }
+
+        // FAVORITOS Y OFERTAS
+        window._astoreFavoriteFilter = false;
+        function getFavorites() { try { return JSON.parse(localStorage.getItem('astoreeco_favorites')) || []; } catch(e) { return []; } }
+        function favoriteKey(p) { return `${p.storePhone || p.storeName}::${p.name}`; }
+        function isFavorite(p) { return getFavorites().includes(favoriteKey(p)); }
+        
+        window.toggleFavorite = function(key) {
+            let f = getFavorites(); 
+            const idx = f.indexOf(key); 
+            if (idx >= 0) f.splice(idx, 1); 
+            else f.push(key); 
+            localStorage.setItem('astoreeco_favorites', JSON.stringify(f)); 
+            renderHomeProducts(); 
+            showToast(idx >= 0 ? 'Eliminado de favoritos' : '❤️ Agregado a favoritos');
+        };
+
+        window.showFavorites = function() {
+            const all = getAllProducts(); 
+            const fav = all.filter(isFavorite);
+            openAstoreEnhancementModal('❤️ Mis favoritos', fav.length ? fav.map(p => `
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl mb-2 border border-gray-100">
+                    <img src="${p.img}" class="w-12 h-12 rounded-xl object-cover">
+                    <div class="flex-1 min-w-0">
+                        <b class="text-xs text-gray-800 truncate block">${p.name}</b>
+                        <p class="text-[10px] text-gray-500 truncate">${p.storeName}</p>
+                    </div>
+                    <span class="font-bold text-emerald-700 text-xs">S/ ${Number(p.price).toFixed(2)}</span>
+                </div>
+            `).join('') : '<p class="text-xs text-gray-400 text-center py-6">Aún no tienes productos en favoritos.</p>');
+        };
+
+        window.renderPromotions = function() {
+            const all = getAllProducts();
+            const promo = all.filter(p => p.promotion);
+            openAstoreEnhancementModal('🏷️ Ofertas Especiales', promo.length ? promo.map(x => `
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl mb-2 space-y-1">
+                    <b class="text-xs text-amber-900">${x.name}</b>
+                    <p class="text-[10px] text-gray-600">${x.storeName} • <span class="bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">${x.promotion}</span></p>
+                    <strong class="text-emerald-700 text-sm block">S/ ${Number(x.price).toFixed(2)}</strong>
+                </div>
+            `).join('') : '<p class="text-xs text-gray-400 text-center py-6">No hay promociones activas por el momento.</p>');
+        };
+
+        function openAstoreEnhancementModal(title, html) {
+            document.getElementById('astore-enhancements-title').textContent = title;
+            document.getElementById('astore-enhancements-content').innerHTML = html;
+            document.getElementById('astore-enhancements-modal').classList.remove('hidden');
+            document.getElementById('astore-enhancements-modal').classList.add('flex');
+        }
+
+        window.closeAstoreEnhancementModal = function() {
+            document.getElementById('astore-enhancements-modal').classList.add('hidden');
+            document.getElementById('astore-enhancements-modal').classList.remove('flex');
+        }
+
+        function updateNotificationBadge() {
+            const count = (JSON.parse(localStorage.getItem('astoreeco_notifications')) || []).filter(n => !n.read).length;
+            const badge = document.getElementById('astore-notif-badge');
+            if (badge) {
+                badge.classList.toggle('hidden', count === 0);
+            }
+        }
+
+        window.showNotifications = function() {
+            let ns = JSON.parse(localStorage.getItem('astoreeco_notifications')) || [];
+            ns.forEach(n => n.read = true);
+            localStorage.setItem('astoreeco_notifications', JSON.stringify(ns));
+            updateNotificationBadge();
+            openAstoreEnhancementModal('🔔 Notificaciones', ns.length ? ns.map(n => `
+                <div class="p-3 rounded-2xl mb-2 ${n.read ? 'bg-gray-50' : 'bg-emerald-50 border border-emerald-200'}">
+                    <b class="text-xs text-gray-800">${n.title}</b>
+                    <p class="text-[11px] text-gray-600 mt-1">${n.message}</p>
+                    <span class="text-[9px] text-gray-400 block mt-1">${new Date(n.date).toLocaleString()}</span>
+                </div>
+            `).join('') : '<p class="text-xs text-gray-400 text-center py-6">No tienes notificaciones recientes.</p>');
+        };
+
+        function toggleStoreFavorite() {
+            if (!currentStoreCatalog) return;
+            let fav = JSON.parse(localStorage.getItem('astoreeco_favorite_stores')) || []; 
+            const key = String(currentStoreCatalog.phone || currentStoreCatalog.name);
+            fav = fav.includes(key) ? fav.filter(x => x !== key) : [...fav, key];
+            localStorage.setItem('astoreeco_favorite_stores', JSON.stringify(fav)); 
+            updateStoreFavoriteButton();
+        }
+
+        function updateStoreFavoriteButton() {
+            const btn = document.getElementById('catalog-favorite-btn'); if (!btn || !currentStoreCatalog) return;
+            const key = String(currentStoreCatalog.phone || currentStoreCatalog.name); 
+            const active = (JSON.parse(localStorage.getItem('astoreeco_favorite_stores')) || []).includes(key);
+            btn.innerHTML = `<i class="fa-${active ? 'solid' : 'regular'} fa-heart ${active ? 'text-amber-400' : ''}"></i>`;
+        }
+
+        function renderHomeProducts() {
+            const searchInput = document.getElementById('home-search-input');
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const container = document.getElementById('dynamic-products-container');
+            const allProds = getAllProducts();
+            const filtered = query === '' ? allProds : allProds.filter(p => p.name.toLowerCase().includes(query) || p.storeName.toLowerCase().includes(query) || (p.category && p.category.toLowerCase().includes(query)));
+            if (filtered.length === 0) { container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">No se encontraron productos coincidentes.</p>`; return; }
+            container.innerHTML = filtered.map(p => {
+                const isCampo = p.category === 'Campo'; const badgeClass = isCampo ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'; const badgeText = isCampo ? '🌾 Campo (1 día ant.)' : '🏙️ Ciudad (Inmediato)'; const extrasJson = encodeURIComponent(JSON.stringify(p.extras || []));
+                const storeKey = escapeJsText(p.storePhone || ''); const storeName = escapeJsText(p.storeName); const pname = escapeJsText(p.name); const desc = escapeJsText(p.desc || ''); const img = escapeJsText(p.img || '');
+                const favKey = favoriteKey(p).replace(/'/g, "\\'");
+                const fav = isFavorite(p);
+                return `
+                    <div class="bg-white border border-gray-100 rounded-2xl p-3 shadow-sm flex items-center gap-3 relative">
+                        <button onclick="event.stopPropagation(); toggleFavorite('${favKey}')" class="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 shadow text-xs ${fav ? 'text-red-500' : 'text-gray-400'} flex items-center justify-center transition">
+                            <i class="fa-${fav ? 'solid' : 'regular'} fa-heart"></i>
+                        </button>
+                        <div class="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 relative cursor-pointer" onclick="openProductDetail('${pname}', ${Number(p.price)||0}, '${escapeJsText(p.unit||'unidad')}', '${img}', '${escapeJsText(storeName)}', '${escapeJsText(p.category||'')}', '${desc}', '${extrasJson}', '${storeKey}')">
+                            <img src="${p.img}" class="w-full h-full object-cover">
+                            <span class="absolute bottom-1 left-1 ${badgeClass} text-[9px] px-1.5 py-0.5 rounded font-medium">${badgeText}</span>
+                        </div>
+                        <div class="flex-1 overflow-hidden cursor-pointer" onclick="openProductDetail('${pname}', ${Number(p.price)||0}, '${escapeJsText(p.unit||'unidad')}', '${img}', '${escapeJsText(storeName)}', '${escapeJsText(p.category||'')}', '${desc}', '${extrasJson}', '${storeKey}')">
+                            <button onclick="openStoreCatalog('${storeKey}', '${escapeJsText(storeName)}'); event.stopPropagation();" class="text-left font-bold text-xs text-emerald-700 hover:underline truncate max-w-full block">
+                                <i class="fa-solid fa-store text-[10px] mr-1"></i>${p.storeName}
+                            </button>
+                            <h4 class="font-bold text-sm text-gray-800 truncate mt-0.5">${p.name}</h4>
+                            <p class="text-[11px] text-gray-400 truncate">${p.desc ? p.desc : (p.unit + ' • ' + p.storeName)}</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <div>
+                                    <span class="font-extrabold text-emerald-700 text-sm">S/ ${(Number(p.price)||0).toFixed(2)}</span>
+                                    ${p.promotion ? `<span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold ml-1">${p.promotion}</span>` : ''}
+                                </div>
+                                <button onclick="event.stopPropagation(); addToCartQuick('${pname}', ${Number(p.price)||0}, '${img}', '${escapeJsText(p.category || 'Campo')}')" class="bg-emerald-700 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // FUNCIONES CORREGIDAS PARA VINCULAR LA TIENDA
+        // ==========================================
+        function openProductDetail(name, price, unit, img, storeName, category, desc, extrasEncoded, storePhone = '') {
+            let extrasArray = [];
+            try {
+                extrasArray = JSON.parse(decodeURIComponent(extrasEncoded));
+            } catch(e) {
+                extrasArray = [];
+            }
+
+            const allProds = getAllProducts();
+            const foundProd = allProds.find(p => p.name === name && (p.storeName === storeName || !storeName));
+            const resolvedStorePhone = storePhone || foundProd?.storePhone || '';
+            const resolvedStoreName = storeName || foundProd?.storeName || 'Tienda no especificada';
+
+            currentDetailProduct = { 
+                name, 
+                basePrice: price, 
+                price: price, 
+                unit, 
+                img, 
+                storeName: resolvedStoreName, 
+                storePhone: resolvedStorePhone,
+                category, 
+                desc, 
+                extras: extrasArray, 
+                quantity: 1, 
+                selectedExtras: [] 
+            };
+            
+            document.getElementById('detail-img').src = img;
+            document.getElementById('detail-name').textContent = name;
+            document.getElementById('detail-price').textContent = `S/ ${price.toFixed(2)}`;
+            document.getElementById('detail-unit').textContent = unit;
+            document.getElementById('detail-store-name').textContent = resolvedStoreName;
+            document.getElementById('detail-store').textContent = category === 'Campo' ? '🌾 Producto Agrícola' : '🏙️ Producto Urbano';
+            
+            const badge = document.getElementById('detail-badge');
+            if (category === 'Campo') {
+                badge.className = 'absolute top-3 left-3 bg-emerald-600 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-md';
+                badge.textContent = 'Cosecha con 1 día de anticipación';
+            } else {
+                badge.className = 'absolute top-3 left-3 bg-blue-600 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-md';
+                badge.textContent = 'Stock Inmediato';
+            }
+
+            const defaultDesc = category === 'Campo' 
+                ? 'Este producto es cosechado directamente de la chacra al realizar tu pedido, garantizando máxima frescura y calidad natural.' 
+                : 'Producto disponible para despacho inmediato desde nuestros establecimientos urbanos asociados en Pucallpa.';
+            
+            document.getElementById('detail-desc').textContent = desc && desc.trim() !== '' ? desc : defaultDesc;
+
+            const extrasSection = document.getElementById('detail-extras-section');
+            const extrasOptionsContainer = document.getElementById('detail-extras-options');
+            
+            if (extrasArray && extrasArray.length > 0) {
+                extrasSection.classList.remove('hidden');
+                extrasOptionsContainer.innerHTML = extrasArray.map((ext, idx) => {
+                    const extraName = typeof ext === 'object' ? ext.name : ext;
+                    return `
+                        <label class="flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-emerald-100/50 cursor-pointer text-gray-700">
+                            <input type="checkbox" value="${idx}" onchange="updateSelectedExtras()" class="accent-emerald-600 w-4 h-4 rounded">
+                            <span>${extraName}</span>
+                        </label>
+                    `;
+                }).join('');
+                currentDetailProduct.selectedExtras = [];
+                updateDetailPriceWithExtras();
+            } else {
+                extrasSection.classList.add('hidden');
+                extrasOptionsContainer.innerHTML = '';
+                currentDetailProduct.selectedExtras = [];
+                currentDetailProduct.price = price;
+                updateDetailBtnText();
+            }
+
+            document.getElementById('detail-qty').textContent = '1';
+            document.getElementById('modal-product-detail').classList.remove('hidden');
+        }
+
+        function updateSelectedExtras() {
+            if (!currentDetailProduct || !currentDetailProduct.extras) return;
+            const checkboxes = document.querySelectorAll('#detail-extras-options input[type="checkbox"]');
+            currentDetailProduct.selectedExtras = [];
+            checkboxes.forEach((cb, idx) => {
+                if (cb.checked) {
+                    currentDetailProduct.selectedExtras.push(currentDetailProduct.extras[idx]);
+                }
+            });
+            updateDetailPriceWithExtras();
+        }
+
+        function updateDetailPriceWithExtras() {
+            if (!currentDetailProduct) return;
+            let extraTotal = 0;
+            if (currentDetailProduct.selectedExtras && currentDetailProduct.selectedExtras.length > 0) {
+                currentDetailProduct.selectedExtras.forEach(ext => {
+                    if (typeof ext === 'object' && ext !== null) {
+                        extraTotal += (ext.price || 0);
+                    }
+                });
+            }
+            currentDetailProduct.price = currentDetailProduct.basePrice + extraTotal;
+            document.getElementById('detail-price').textContent = `S/ ${currentDetailProduct.price.toFixed(2)}`;
+            updateDetailBtnText();
+        }
+
+        function closeProductModal() {
+            document.getElementById('modal-product-detail').classList.add('hidden');
+        }
+
+        function adjustDetailQty(change) {
+            if (!currentDetailProduct) return;
+            currentDetailProduct.quantity += change;
+            if (currentDetailProduct.quantity < 1) currentDetailProduct.quantity = 1;
+            document.getElementById('detail-qty').textContent = currentDetailProduct.quantity;
+            updateDetailBtnText();
+        }
+
+        function updateDetailBtnText() {
+            if (!currentDetailProduct) return;
+            const total = currentDetailProduct.price * currentDetailProduct.quantity;
+            document.getElementById('detail-add-btn-text').textContent = `Agregar a la Canasta - S/ ${total.toFixed(2)}`;
+        }
+
+        function addDetailToCart() {
+            if (!currentDetailProduct) return;
+            
+            const selectedExtrasNames = currentDetailProduct.selectedExtras 
+                ? currentDetailProduct.selectedExtras.map(ext => typeof ext === 'object' ? ext.name : ext).filter(name => name)
+                : [];
+
+            const storeName = currentDetailProduct.storeName || 'Tienda no especificada';
+            const storePhone = currentDetailProduct.storePhone || '';
+
+            const existing = cart.find(i => i.name === currentDetailProduct.name && i.storePhone === storePhone && JSON.stringify(i.extras) === JSON.stringify(selectedExtrasNames));
+            
+            if (existing) {
+                existing.quantity += currentDetailProduct.quantity;
+            } else {
+                cart.push({ 
+                    name: currentDetailProduct.name, 
+                    price: currentDetailProduct.price, 
+                    img: currentDetailProduct.img, 
+                    type: currentDetailProduct.category, 
+                    quantity: currentDetailProduct.quantity,
+                    extras: selectedExtrasNames,
+                    storeName,
+                    storePhone
+                });
+            }
+            updateCartUI();
+            showToast(`¡Agregado ${currentDetailProduct.quantity}x ${currentDetailProduct.name}!`);
+            closeProductModal();
+        }
+
+        function addToCartQuick(name, price, img, type) {
+            const allProds = getAllProducts();
+            const product = allProds.find(p => p.name === name) || {};
+            const storeName = product.storeName || 'Tienda no especificada';
+            const storePhone = product.storePhone || '';
+
+            const existingItem = cart.find(item => item.name === name && item.storePhone === storePhone && (!item.extras || item.extras.length === 0));
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ 
+                    name, 
+                    price, 
+                    img, 
+                    type, 
+                    quantity: 1, 
+                    extras: [], 
+                    storeName, 
+                    storePhone 
+                });
+            }
+            updateCartUI();
+            showToast(`¡${name} agregado a la canasta!`);
+        }
+        // ==========================================
+
+        function openProfile() {
+            if (currentUser) {
+                updateProfileUI();
+                switchView('view-profile');
+            } else {
+                loginIntent = 'profile';
+                document.getElementById('login-btn-text').textContent = 'Ingresar a mi Perfil';
+                switchView('view-login');
+            }
+        }
+
+        function updateProfileUI() {
+            if (!currentUser) return;
+            document.getElementById('profile-name-text').textContent = currentUser.name;
+            document.getElementById('profile-phone-text').textContent = `+51 ${currentUser.phone}`;
+            document.getElementById('profile-address-text').textContent = currentUser.address || 'Jr. Tarapacá 456, Pucallpa';
+            
+            const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+            document.getElementById('profile-avatar-letters').textContent = initials;
+            document.getElementById('profile-avatar-initials').textContent = initials;
+
+            renderProfileOrders();
+        }
+
+        function renderProfileOrders() {
+            const container = document.getElementById('profile-orders-container');
+            if (!currentUser) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-2">Inicia sesión para ver tus pedidos.</p>`;
+                return;
+            }
+
+            const allOrders = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            const userOrders = allOrders.filter(o => o.clientPhone === currentUser.phone);
+
+            if (userOrders.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-2">No tienes pedidos registrados aún.</p>`;
+                return;
+            }
+
+            container.innerHTML = userOrders.map(order => {
+                const isDelivered = order.status && order.status.toLowerCase().includes('entregado');
+                return `
+                    <div class="border border-gray-100 bg-gray-50 rounded-xl p-3 space-y-1.5 text-xs">
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="text-emerald-700">${order.id}</span>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">${order.status}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500">${order.date} • <span class="font-semibold text-gray-800">${order.items.reduce((acc, i) => acc + i.quantity, 0)} productos</span></p>
+                        <p class="text-[10px] text-gray-500">Pago: <span class="font-semibold text-gray-700">${order.paymentMethod || 'Contra entrega'}</span></p>
+                        
+                        ${order.paymentReceipt ? `
+                            <div class="mt-1 flex items-center gap-2 bg-white p-1.5 rounded-lg border border-gray-200">
+                                <i class="fa-solid fa-receipt text-emerald-600 text-xs"></i>
+                                <span class="text-[10px] text-gray-500">Voucher adjunto:</span>
+                                <a href="${order.paymentReceipt}" target="_blank" class="text-[10px] text-emerald-700 font-bold underline">Ver imagen</a>
+                            </div>
+                        ` : ''}
+
+                        <div class="flex justify-between items-center pt-1 border-t border-gray-200">
+                            <span class="text-gray-600 font-medium">Total:</span>
+                            <span class="font-extrabold text-emerald-700">S/ ${order.total.toFixed(2)}</span>
+                        </div>
+
+                        ${isDelivered ? `
+                            <div class="pt-2 mt-1 border-t border-gray-200">
+                                ${order.rating ? `
+                                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-[11px] text-amber-900 space-y-1">
+                                        <div class="font-bold flex items-center gap-1">
+                                            <i class="fa-solid fa-star text-amber-500"></i> Calificación realizada:
+                                        </div>
+                                        <p>🌾 Tienda: <strong>${order.rating.storeStars}★</strong> ${order.rating.storeComment ? '- "' + order.rating.storeComment + '"' : ''}</p>
+                                        <p>🛵 Repartidor: <strong>${order.rating.driverStars}★</strong> ${order.rating.driverComment ? '- "' + order.rating.driverComment + '"' : ''}</p>
+                                    </div>
+                                ` : `
+                                    <button onclick="openRatingModal('${order.id}')" class="w-full bg-amber-500 text-white py-2 rounded-xl font-bold text-[11px] shadow-sm hover:bg-amber-600 transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-star"></i> Calificar Tienda y Repartidor
+                                    </button>
+                                `}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openRatingModal(orderId) {
+            currentRatingOrderId = orderId;
+            currentStoreStars = 5;
+            currentDriverStars = 5;
+            updateStarUI('store', 5);
+            updateStarUI('driver', 5);
+            document.getElementById('store-comment').value = '';
+            document.getElementById('driver-comment').value = '';
+            document.getElementById('modal-rating').classList.remove('hidden');
+        }
+
+        function closeRatingModal() {
+            document.getElementById('modal-rating').classList.add('hidden');
+            currentRatingOrderId = null;
+        }
+
+        function setRating(target, stars) {
+            if (target === 'store') {
+                currentStoreStars = stars;
+                updateStarUI('store', stars);
+            } else {
+                currentDriverStars = stars;
+                updateStarUI('driver', stars);
+            }
+        }
+
+        function updateStarUI(target, stars) {
+            const containerId = target === 'store' ? 'store-stars-container' : 'driver-stars-container';
+            const starsEls = document.getElementById(containerId).children;
+            for (let i = 0; i < starsEls.length; i++) {
+                if (i < stars) {
+                    starsEls[i].className = "fa-solid fa-star cursor-pointer hover:scale-110 transition text-amber-400";
+                } else {
+                    starsEls[i].className = "fa-regular fa-star cursor-pointer hover:scale-110 transition text-gray-300";
+                }
+            }
+        }
+
+        function submitRatings() {
+            if (!currentRatingOrderId) return;
+            const storeComment = document.getElementById('store-comment').value.trim();
+            const driverComment = document.getElementById('driver-comment').value.trim();
+
+            let allOrders = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            const index = allOrders.findIndex(o => o.id === currentRatingOrderId);
+            if (index !== -1) {
+                allOrders[index].rating = {
+                    storeStars: currentStoreStars,
+                    storeComment: storeComment,
+                    driverStars: currentDriverStars,
+                    driverComment: driverComment,
+                    date: new Date().toLocaleDateString()
+                };
+                localStorage.setItem('astoreeco_orders', JSON.stringify(allOrders));
+                showToast('⭐ ¡Gracias por calificar tu pedido!');
+                closeRatingModal();
+                renderProfileOrders();
+            }
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.app-view').forEach(view => view.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            document.querySelector('.app-view:not(.hidden)').scrollTop = 0;
+
+            if (viewId === 'view-cart') {
+                const addrInput = document.getElementById('delivery-address-input');
+                const phoneInput = document.getElementById('cart-phone-input');
+                if (currentUser) {
+                    if (addrInput && !addrInput.value) addrInput.value = currentUser.address || '';
+                    if (phoneInput && !phoneInput.value) phoneInput.value = currentUser.phone || '';
+                }
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function increaseQuantity(index) {
+            cart[index].quantity += 1;
+            updateCartUI();
+        }
+
+        function decreaseQuantity(index) {
+            if (cart[index].quantity > 1) {
+                cart[index].quantity -= 1;
+            } else {
+                cart.splice(index, 1);
+                showToast(`Producto eliminado de la canasta`);
+            }
+            updateCartUI();
+        }
+
+        function removeFromCart(index) {
+            const removedItem = cart[index];
+            cart.splice(index, 1);
+            updateCartUI();
+            showToast(`Se eliminó ${removedItem.name}`);
+        }
+
+        function updateCartUI() {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const radioAdelantado = document.querySelector('input[name="pago-modalidad"][value="adelantado"]');
+            const isAdelantado = radioAdelantado ? radioAdelantado.checked : true;
+            
+            const yapeSection = document.getElementById('yape-code-section');
+            if (yapeSection) {
+                if (isAdelantado) {
+                    yapeSection.classList.remove('hidden');
+                } else {
+                    yapeSection.classList.add('hidden');
+                }
+            }
+
+            let discount = isAdelantado ? subtotal * 0.05 : 0;
+            let deliveryFee = subtotal > 0 ? 5.00 : 0.00;
+            let totalPrice = subtotal - discount + deliveryFee;
+
+            document.querySelectorAll('.cart-badge').forEach(badge => badge.textContent = totalItems);
+
+            const container = document.getElementById('cart-items-container');
+            if (cart.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Tu canasta está vacía.</p>`;
+            } else {
+                container.innerHTML = cart.map((item, index) => {
+                    const extrasList = item.extras || [];
+                    const extrasHTML = extrasList.length > 0 ? `
+                        <div class="text-[11px] text-emerald-800 bg-emerald-50 p-1.5 rounded-lg mt-1 border border-emerald-200">
+                            <span class="font-bold">Extras:</span> ${extrasList.join(', ')}
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="bg-white border border-gray-100 rounded-2xl p-3 flex justify-between items-center shadow-sm">
+                            <div class="flex items-center gap-3 flex-1 pr-2">
+                                <img src="${item.img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200'}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-xs text-gray-800">${item.name}</h4>
+                                    <span class="text-[10px] text-gray-500 font-semibold block">${item.storeName || 'Tienda'}</span>
+                                    <span class="font-extrabold text-emerald-700 text-xs">S/ ${(item.price * item.quantity).toFixed(2)}</span>
+                                    
+                                    ${extrasHTML}
+
+                                    <div class="flex items-center gap-2 mt-1.5">
+                                        <button onclick="decreaseQuantity(${index})" class="w-6 h-6 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center text-xs hover:bg-gray-200 transition"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                                        <span class="text-xs font-bold text-gray-800">${item.quantity}</span>
+                                        <button onclick="increaseQuantity(${index})" class="w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs hover:bg-emerald-200 transition"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="removeFromCart(${index})" class="text-gray-400 hover:text-red-600 p-2 transition flex-shrink-0" title="Eliminar producto">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const summaryDetails = document.getElementById('cart-summary-details');
+            let summaryHTML = `<div class="flex justify-between text-gray-500"><span>Subtotal:</span><span>S/ ${subtotal.toFixed(2)}</span></div>`;
+            if (isAdelantado && subtotal > 0) {
+                summaryHTML += `<div class="flex justify-between text-emerald-600 font-semibold"><span>Descuento (5%):</span><span>- S/ ${discount.toFixed(2)}</span></div>`;
+            }
+            if (subtotal > 0) {
+                summaryHTML += `<div class="flex justify-between text-gray-500"><span>Envío:</span><span>S/ ${deliveryFee.toFixed(2)}</span></div>`;
+            }
+            summaryDetails.innerHTML = summaryHTML;
+
+            document.getElementById('cart-total-text').textContent = `S/ ${totalPrice.toFixed(2)}`;
+            document.getElementById('checkout-btn-text').textContent = `Confirmar y Pagar S/ ${totalPrice.toFixed(2)}`;
+        }
+
+        function proceedToCheckout() {
+            if (cart.length === 0) {
+                showToast('Tu canasta está vacía.');
+                return;
+            }
+
+            const phoneInput = document.getElementById('cart-phone-input');
+            const clientPhone = currentUser ? currentUser.phone : (phoneInput ? phoneInput.value.trim() : '');
+
+            if (!clientPhone || clientPhone.length < 9) {
+                showToast('Por favor ingresa tu número de celular (9 dígitos).');
+                if (phoneInput) phoneInput.focus();
+                return;
+            }
+
+            const radioAdelantado = document.querySelector('input[name="pago-modalidad"][value="adelantado"]');
+            let paymentMethod = 'Contra entrega';
+
+            if (radioAdelantado && radioAdelantado.checked) {
+                paymentMethod = 'Adelantado (Yape/Plin)';
+                const fileInput = document.getElementById('yape-receipt-input');
+                const file = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
+
+                if (!file) {
+                    showToast('⚠️ La captura de pago es obligatoria.');
+                    const dropzone = document.getElementById('receipt-dropzone-label');
+                    if (dropzone) {
+                        dropzone.classList.add('border-red-500', 'bg-red-50/30', 'animate-bounce');
+                        setTimeout(() => dropzone.classList.remove('animate-bounce'), 1000);
+                    }
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const paymentReceipt = e.target.result;
+                    finalizeOrderSuccess(clientPhone, paymentMethod, paymentReceipt);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            finalizeOrderSuccess(clientPhone, paymentMethod, null);
+        }
+
+        function handleLogin() {
+            const phone = document.getElementById('login-phone').value.trim();
+            const pin = document.getElementById('login-pin').value.trim();
+            const persistSession = document.getElementById('login-persist').checked;
+
+            if (phone.length < 9 || pin.length < 3) {
+                showToast('Ingresa un celular y PIN válidos.');
+                return;
+            }
+
+            const clients = JSON.parse(localStorage.getItem('astoreeco_clients')) || [];
+            const foundClient = clients.find(c => c.phone === phone && c.pin === pin);
+
+            if (foundClient) {
+                currentUser = foundClient;
+                
+                if (persistSession) {
+                    localStorage.setItem('astoreeco_current_user', JSON.stringify(currentUser));
+                } else {
+                    localStorage.removeItem('astoreeco_current_user');
+                }
+
+                showToast(`¡Bienvenido de nuevo, ${currentUser.name}!`);
+                postLoginRedirect();
+            } else {
+                showToast('Credenciales incorrectas o regístrate.');
+            }
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const address = document.getElementById('reg-address').value.trim();
+            const pin = document.getElementById('reg-pin').value.trim();
+
+            if (!name || phone.length < 9 || !address || pin.length < 3) {
+                showToast('Completa todos los campos y tu dirección.');
+                return;
+            }
+
+            let clients = JSON.parse(localStorage.getItem('astoreeco_clients')) || [];
+            if (clients.some(c => c.phone === phone)) {
+                showToast('Este celular ya está registrado.');
+                return;
+            }
+
+            const newClient = { name, phone, address, pin };
+            clients.push(newClient);
+            localStorage.setItem('astoreeco_clients', JSON.stringify(clients));
+
+            currentUser = newClient;
+            localStorage.setItem('astoreeco_current_user', JSON.stringify(currentUser));
+            showToast('¡Cuenta y dirección guardadas!');
+            postLoginRedirect();
+        }
+
+        function postLoginRedirect() {
+            updateProfileUI();
+            if (loginIntent === 'map') {
+                switchView('view-map');
+                setTimeout(() => {
+                    initAstoreMap();
+                }, 150);
+            } else if (loginIntent === 'profile') {
+                switchView('view-profile');
+            } else {
+                switchView('view-cart');
+            }
+        }
+
+        function finalizeOrderSuccess(clientPhone, paymentMethod, paymentReceipt) {
+            showToast('🙏 ¡DIOS BENDIGA TU DÍA!');
+
+            const drivers = JSON.parse(localStorage.getItem('astoreeco_drivers')) || [];
+            const driverBox = document.getElementById('assigned-driver-box');
+            const driverNameEl = document.getElementById('assigned-driver-name');
+
+            if (drivers.length > 0) {
+                const assigned = drivers[Math.floor(Math.random() * drivers.length)];
+                driverNameEl.textContent = `${assigned.name} (${assigned.vehicle}) - Cel: ${assigned.phone}`;
+                driverBox.classList.remove('hidden');
+            } else {
+                driverBox.classList.add('hidden');
+            }
+
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const radioAdelantado = document.querySelector('input[name="pago-modalidad"][value="adelantado"]');
+            const isAdelantado = radioAdelantado ? radioAdelantado.checked : true;
+            let discount = isAdelantado ? subtotal * 0.05 : 0;
+            let totalPrice = subtotal - discount + 5.00;
+
+            const newOrder = {
+                id: 'AST-' + Math.floor(1000 + Math.random() * 9000),
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                items: [...cart],
+                total: totalPrice,
+                status: 'Cosecha programada (1 día ant.)',
+                clientPhone: clientPhone || 'guest',
+                paymentMethod: paymentMethod || 'Contra entrega',
+                paymentReceipt: paymentReceipt || null
+            };
+
+            let allOrders = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            allOrders.unshift(newOrder);
+            localStorage.setItem('astoreeco_orders', JSON.stringify(allOrders));
+
+            // Guardar notificación para el usuario
+            let notifs = JSON.parse(localStorage.getItem('astoreeco_notifications')) || [];
+            notifs.unshift({ id: 'N-' + Date.now(), title: '🛒 Pedido Registrado', message: `Tu pedido ${newOrder.id} fue procesado correctamente.`, orderId: newOrder.id, date: new Date().toISOString(), read: false });
+            localStorage.setItem('astoreeco_notifications', JSON.stringify(notifs));
+            updateNotificationBadge();
+
+            cart = [];
+            updateCartUI();
+            switchView('view-tracking');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('astoreeco_current_user');
+            document.getElementById('profile-avatar-initials').textContent = 'JD';
+            showToast('Has cerrado sesión.');
+            switchView('view-home');
+        }
+    </script>
+</body>
+</html>
