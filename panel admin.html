@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - ASTOREECO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Chart.js para analítica financiera -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+    <!-- Header Profesional -->
+    <header class="bg-gradient-to-r from-emerald-800 to-emerald-700 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-900/50 flex items-center justify-center text-emerald-200 text-lg font-bold shadow-inner">
+                    🌱
+                </div>
+                <div>
+                    <h1 class="text-base font-extrabold tracking-wide">ASTORE ECO</h1>
+                    <p class="text-[11px] text-emerald-200">Panel de Control y Administración</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <a href="repartidor.html" target="_blank" class="text-xs bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 px-3.5 py-2 rounded-xl font-semibold transition flex items-center gap-2 shadow-sm border border-emerald-600/30">
+                    <i class="fa-solid fa-motorcycle text-emerald-300"></i> Ver Repartidor
+                </a>
+                <span class="text-xs bg-emerald-900/80 px-3 py-2 rounded-xl font-medium border border-emerald-600/30">📍 Pucallpa</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Navegación de Pestañas Moderna (Pills) -->
+        <nav class="bg-white p-2 rounded-2xl shadow-sm border border-gray-200/80 mb-6 flex flex-wrap gap-1.5 items-center">
+            <button onclick="switchTab('store')" id="btn-store" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition bg-emerald-700 text-white shadow-sm">
+                <i class="fa-solid fa-store"></i> Registrar Tienda
+            </button>
+            <button onclick="switchTab('driver')" id="btn-driver" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-user-tie"></i> Repartidor
+            </button>
+            <button onclick="switchTab('clients')" id="btn-clients" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-users"></i> Clientes & Compras
+            </button>
+            <button onclick="switchTab('list')" id="btn-list" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-database"></i> Registros & Backup
+            </button>
+            <button onclick="switchTab('orders')" id="btn-orders" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-clipboard-list"></i> Monitoreo Pedidos
+            </button>
+            <button onclick="switchTab('analytics')" id="btn-analytics" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-chart-pie"></i> Analítica
+            </button>
+            <button onclick="switchTab('gps')" id="btn-gps" class="tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-location-dot"></i> GPS en Vivo
+            </button>
+        </nav>
+
+        <!-- Store Form Section -->
+        <section id="form-store" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                <div>
+                    <h2 id="storeFormTitle" class="text-lg font-bold text-gray-900">Registrar Nuevo Comercio / Productor</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Ingresa los datos de la tienda, RUC y ubícala en el mapa interactivo.</p>
+                </div>
+                <button type="button" id="cancelStoreEdit" onclick="resetStoreForm()" class="hidden text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-xl font-semibold hover:bg-red-100 transition">Cancelar Edición</button>
+            </div>
+            <form id="storeForm" onsubmit="handleStoreSubmit(event)" class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Nombre Comercial</label>
+                        <input type="text" id="storeName" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">RUC (11 dígitos)</label>
+                        <input type="text" id="storeRuc" maxlength="11" pattern="[0-9]{11}" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="20123456789">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Categoría y Modalidad de Entrega</label>
+                        <select id="storeCategory" onchange="updateCategoryHint()" class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500">
+                            <option value="Campo">Campo (1 día de anticipación)</option>
+                            <option value="Ciudad">Ciudad (Mismo día)</option>
+                        </select>
+                        <p id="categoryHint" class="text-xs text-amber-600 mt-2 font-medium flex items-center gap-1.5 bg-amber-50 p-2.5 rounded-xl border border-amber-200/60">🌾 Los pedidos de Campo se programan con 1 día de anticipación.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Celular de Acceso (Login)</label>
+                        <input type="tel" id="storePhone" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="999999999">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">PIN de Acceso (6 dígitos)</label>
+                        <input type="password" id="storePin" maxlength="6" pattern="[0-9]{6}" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="123456">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Dirección (Selecciona en el mapa abajo)</label>
+                        <input type="text" id="storeAddress" required readonly class="w-full rounded-xl bg-gray-50 border-gray-300 shadow-sm border p-3 text-sm text-gray-600" placeholder="Haz clic en el mapa...">
+                    </div>
+                </div>
+
+                <!-- Mapa Interactivo -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Ubicación en el Mapa (Pucallpa)</label>
+                    <div id="map" class="w-full h-72 rounded-2xl border border-gray-300 shadow-inner z-0"></div>
+                    <p class="text-xs text-gray-500 mt-1.5 flex items-center gap-1">📍 Haz clic sobre el mapa para marcar la ubicación exacta del comercio.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Descripción Corta</label>
+                    <textarea id="storeDesc" rows="2" class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Ej. Cítricos y hortalizas ecológicas"></textarea>
+                </div>
+                <button type="submit" id="storeSubmitBtn" class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 text-sm">Guardar Tienda</button>
+            </form>
+        </section>
+
+        <!-- Driver Form Section -->
+        <section id="form-driver" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80 hidden">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                <div>
+                    <h2 id="driverFormTitle" class="text-lg font-bold text-gray-900">Registrar Nuevo Repartidor</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Configura las credenciales de acceso para el personal de reparto.</p>
+                </div>
+                <button type="button" id="cancelDriverEdit" onclick="resetDriverForm()" class="hidden text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-xl font-semibold hover:bg-red-100 transition">Cancelar Edición</button>
+            </div>
+            <form id="driverForm" onsubmit="handleDriverSubmit(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Nombre Completo</label>
+                    <input type="text" id="driverName" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">DNI</label>
+                        <input type="text" id="driverDni" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Celular de Acceso (Login)</label>
+                        <input type="tel" id="driverPhone" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="999999999">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">PIN de Acceso (6 dígitos)</label>
+                        <input type="password" id="driverPin" maxlength="6" pattern="[0-9]{6}" required class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="123456">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tipo de Vehículo</label>
+                        <select id="driverVehicle" class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500">
+                            <option value="Moto">Moto</option>
+                            <option value="Bicicleta">Bicicleta</option>
+                            <option value="Auto">Auto</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Número de Placa (si aplica)</label>
+                    <input type="text" id="driverPlate" class="w-full rounded-xl border-gray-300 shadow-sm border p-3 text-sm focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <button type="submit" id="driverSubmitBtn" class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 text-sm">Guardar Repartidor</button>
+            </form>
+        </section>
+
+        <!-- Clients Section -->
+        <section id="section-clients" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80 hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-100">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Clientes Registrados e Historial de Compras</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Lista de usuarios clientes y el detalle completo de todas sus compras realizadas.</p>
+                </div>
+                <button onclick="renderClients()" class="bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-100 transition flex items-center gap-2 border border-emerald-200/60 shadow-sm">
+                    <i class="fa-solid fa-rotate-right"></i> Actualizar Lista
+                </button>
+            </div>
+            
+            <div id="clientsAccordionList" class="space-y-3">
+                <p class="text-center text-gray-500 py-6 text-sm">No hay clientes registrados aún.</p>
+            </div>
+        </section>
+
+        <!-- List Section & Dashboard -->
+        <section id="section-list" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80 hidden space-y-6">
+            <!-- Dashboard Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="bg-emerald-50/80 border border-emerald-200/60 p-4 rounded-2xl text-center shadow-sm">
+                    <div class="text-emerald-600 mb-1 text-lg"><i class="fa-solid fa-store"></i></div>
+                    <p class="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">Total Tiendas</p>
+                    <h3 id="statTotalStores" class="text-2xl font-extrabold text-emerald-900 mt-1">0</h3>
+                </div>
+                <div class="bg-amber-50/80 border border-amber-200/60 p-4 rounded-2xl text-center shadow-sm">
+                    <div class="text-amber-600 mb-1 text-lg"><i class="fa-solid fa-seedling"></i></div>
+                    <p class="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Prod. Campo (1d)</p>
+                    <h3 id="statFieldStores" class="text-2xl font-extrabold text-amber-900 mt-1">0</h3>
+                </div>
+                <div class="bg-blue-50/80 border border-blue-200/60 p-4 rounded-2xl text-center shadow-sm">
+                    <div class="text-blue-600 mb-1 text-lg"><i class="fa-solid fa-city"></i></div>
+                    <p class="text-[11px] text-blue-700 font-bold uppercase tracking-wider">Ciudad (Hoy)</p>
+                    <h3 id="statCityStores" class="text-2xl font-extrabold text-blue-900 mt-1">0</h3>
+                </div>
+                <div class="bg-purple-50/80 border border-purple-200/60 p-4 rounded-2xl text-center shadow-sm">
+                    <div class="text-purple-600 mb-1 text-lg"><i class="fa-solid fa-motorcycle"></i></div>
+                    <p class="text-[11px] text-purple-700 font-bold uppercase tracking-wider">Repartidores</p>
+                    <h3 id="statTotalDrivers" class="text-2xl font-extrabold text-purple-900 mt-1">0</h3>
+                </div>
+                <div class="bg-indigo-50/80 border border-indigo-200/60 p-4 rounded-2xl text-center shadow-sm col-span-2 md:col-span-1">
+                    <div class="text-indigo-600 mb-1 text-lg"><i class="fa-solid fa-users"></i></div>
+                    <p class="text-[11px] text-indigo-700 font-bold uppercase tracking-wider">Clientes</p>
+                    <h3 id="statTotalClients" class="text-2xl font-extrabold text-indigo-900 mt-1">0</h3>
+                </div>
+            </div>
+
+            <!-- Backup Control Bar -->
+            <div class="flex flex-wrap justify-between items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200/80">
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800">Copia de Seguridad (Backup)</h4>
+                    <p class="text-xs text-gray-500">Exporta o restaura toda la información local de la app de forma segura.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportData()" class="bg-gray-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-download"></i> Exportar JSON
+                    </button>
+                    <label class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition cursor-pointer flex items-center gap-1.5 shadow-sm shadow-emerald-600/20">
+                        <i class="fa-solid fa-upload"></i> Importar JSON <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Search and Filter Bar -->
+            <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
+                <div class="relative w-full md:w-1/2">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="renderLists()" placeholder="Buscar por nombre, RUC o celular..." class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                    <button onclick="setFilter('all')" id="filter-all" class="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 text-white transition shadow-sm">Todos</button>
+                    <button onclick="setFilter('Campo')" id="filter-campo" class="px-4 py-2 text-xs font-bold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Campo</button>
+                    <button onclick="setFilter('Ciudad')" id="filter-ciudad" class="px-4 py-2 text-xs font-bold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Ciudad</button>
+                </div>
+            </div>
+
+            <!-- Stores List Accordion -->
+            <div>
+                <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-emerald-600"></i> Tiendas Registradas
+                </h3>
+                <div id="storesAccordionList" class="space-y-3">
+                    <p class="text-center text-gray-500 py-6 text-sm">No hay tiendas registradas aún.</p>
+                </div>
+            </div>
+
+            <hr class="border-gray-200">
+
+            <!-- Drivers List Accordion -->
+            <div>
+                <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-motorcycle text-purple-600"></i> Repartidores Registrados
+                </h3>
+                <div id="driversAccordionList" class="space-y-3">
+                    <p class="text-center text-gray-500 py-6 text-sm">No hay repartidores registrados aún.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Orders Monitoring Section -->
+        <section id="section-orders" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80 hidden space-y-5">
+            <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Monitoreo Sincronizado en Vivo</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Supervisa pedidos y comprobantes de pago en tiempo real.</p>
+                </div>
+                <button onclick="renderOrders()" class="bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-100 transition flex items-center gap-2 border border-emerald-200/60 shadow-sm">
+                    <i class="fa-solid fa-rotate-right"></i> Actualizar Pedidos
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto rounded-2xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase text-[11px]">ID / Fecha</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase text-[11px]">Cliente / Dirección</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase text-[11px]">Pago & Foto Entrega</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase text-[11px]">Estado Actual</th>
+                            <th class="px-4 py-3 text-center font-bold text-gray-600 uppercase text-[11px]">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody" class="divide-y divide-gray-200 bg-white">
+                        <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500 text-sm">No hay pedidos registrados en el sistema.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: ANALÍTICA FINANCIERA -->
+        <section id="section-analytics" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80 hidden space-y-6">
+            <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-gray-100">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Analítica y Reportes Financieros</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Resumen de ingresos, volumen de ventas y exportación de reportes.</p>
+                </div>
+                <button onclick="exportCSVReport()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition flex items-center gap-2 shadow-md shadow-emerald-600/20">
+                    <i class="fa-solid fa-file-excel"></i> Exportar CSV / Excel
+                </button>
+            </div>
+
+            <!-- Tarjetas de Resumen Financiero -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="bg-emerald-50/80 border border-emerald-200/80 p-5 rounded-2xl shadow-sm">
+                    <p class="text-xs text-emerald-700 font-bold uppercase tracking-wider">Ventas Totales Registradas</p>
+                    <h3 id="analyticsTotalRevenue" class="text-3xl font-extrabold text-emerald-950 mt-1.5">S/ 0.00</h3>
+                </div>
+                <div class="bg-blue-50/80 border border-blue-200/80 p-5 rounded-2xl shadow-sm">
+                    <p class="text-xs text-blue-700 font-bold uppercase tracking-wider">Total Pedidos Procesados</p>
+                    <h3 id="analyticsTotalOrders" class="text-3xl font-extrabold text-blue-950 mt-1.5">0</h3>
+                </div>
+                <div class="bg-amber-50/80 border border-amber-200/80 p-5 rounded-2xl shadow-sm">
+                    <p class="text-xs text-amber-700 font-bold uppercase tracking-wider">Ticket Promedio por Pedido</p>
+                    <h3 id="analyticsAvgTicket" class="text-3xl font-extrabold text-amber-950 mt-1.5">S/ 0.00</h3>
+                </div>
+            </div>
+
+            <!-- Gráficos Estadísticos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div class="bg-gray-50/80 p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+                    <h3 class="text-xs font-bold text-gray-700 mb-3 text-center uppercase tracking-wider">Estado de los Pedidos</h3>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="ordersStatusChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50/80 p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+                    <h3 class="text-xs font-bold text-gray-700 mb-3 text-center uppercase tracking-wider">Métodos de Pago Utilizados</h3>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="paymentMethodsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: FLOTA GPS EN VIVO -->
+        <section id="section-gps" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200/80 hidden space-y-5">
+            <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Rastreo GPS de Repartidores en Vivo</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Visualiza la posición geográfica en tiempo real de la flota.</p>
+                </div>
+                <button onclick="initOrUpdateGPSMap()" class="bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-100 transition flex items-center gap-2 border border-emerald-200/60 shadow-sm">
+                    <i class="fa-solid fa-rotate-right"></i> Actualizar Posiciones
+                </button>
+            </div>
+
+            <div id="gpsMap" class="w-full h-96 rounded-2xl border border-gray-300 z-0 shadow-inner"></div>
+            <div id="gpsStatusList" class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                <!-- Se llena dinámicamente con los repartidores -->
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL VISOR DE IMÁGENES EN GRANDE -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+        <div class="relative max-w-2xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl p-4 flex flex-col items-center" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute top-4 right-4 bg-gray-900 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold hover:bg-gray-800 transition z-10 shadow-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">Vista Previa de Imagen</h3>
+            <img id="modalImageFull" src="" class="w-full max-h-[75vh] object-contain rounded-2xl border border-gray-200 bg-gray-50">
+        </div>
+    </div>
+
+    <!-- Modal Personalizado -->
+    <div id="customModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-2xl transform transition-all border border-gray-100">
+            <div id="modalIcon" class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner">✓</div>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-900 mb-2">¡Operación Exitosa!</h3>
+            <p id="modalMessage" class="text-sm text-gray-600 mb-6 leading-relaxed">Mensaje descriptivo aquí.</p>
+            <div id="modalButtons" class="flex gap-2">
+                <button onclick="closeModal()" class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 text-sm">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let storesData = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+        let driversData = JSON.parse(localStorage.getItem('astoreeco_drivers')) || [];
+        let clientsData = JSON.parse(localStorage.getItem('astoreeco_clients')) || JSON.parse(localStorage.getItem('astoreeco_users')) || [];
+        
+        let map = null;
+        let marker = null;
+        let currentLat = null;
+        let currentLng = null;
+
+        let gpsMap = null;
+        let gpsMarkers = {};
+
+        let statusChartInstance = null;
+        let paymentChartInstance = null;
+
+        let editingStoreIndex = null;
+        let editingDriverIndex = null;
+        let currentFilter = 'all';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            updateCategoryHint();
+            renderOrders();
+            renderClients();
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'astoreeco_orders') {
+                    renderOrders();
+                    renderAnalytics();
+                    renderClients();
+                }
+                if (e.key === 'astoreeco_clients' || e.key === 'astoreeco_users') {
+                    renderClients();
+                }
+            });
+        });
+
+        function openImageModal(base64Url) {
+            document.getElementById('modalImageFull').src = base64Url;
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('modalImageFull').src = '';
+        }
+
+        function updateCategoryHint() {
+            const cat = document.getElementById('storeCategory').value;
+            const hint = document.getElementById('categoryHint');
+            if (cat === 'Campo') {
+                hint.innerHTML = '<i class="fa-solid fa-seedling"></i> Los pedidos de Campo se programan con 1 día de anticipación.';
+                hint.className = "text-xs text-amber-700 mt-2 font-medium flex items-center gap-1.5 bg-amber-50 p-2.5 rounded-xl border border-amber-200/60";
+            } else {
+                hint.innerHTML = '<i class="fa-solid fa-city"></i> Los pedidos de Ciudad se entregan en el mismo día.';
+                hint.className = "text-xs text-blue-700 mt-2 font-medium flex items-center gap-1.5 bg-blue-50 p-2.5 rounded-xl border border-blue-200/60";
+            }
+        }
+
+        function showModal(title, message, isError = false, customButtons = null) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            const icon = document.getElementById('modalIcon');
+            const btnContainer = document.getElementById('modalButtons');
+
+            if(isError) {
+                icon.className = "w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner";
+                icon.innerText = "✕";
+            } else {
+                icon.className = "w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner";
+                icon.innerText = "✓";
+            }
+
+            if (customButtons) {
+                btnContainer.innerHTML = customButtons;
+            } else {
+                btnContainer.innerHTML = `<button onclick="closeModal()" class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 text-sm">Aceptar</button>`;
+            }
+
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        function initMap() {
+            if (map) return;
+            map = L.map('map').setView([-8.3791, -74.5539], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('click', function(e) {
+                currentLat = e.latlng.lat;
+                currentLng = e.latlng.lng;
+
+                if (marker) {
+                    marker.setLatLng([currentLat, currentLng]);
+                } else {
+                    marker = L.marker([currentLat, currentLng]).addTo(map);
+                }
+
+                document.getElementById('storeAddress').value = "Buscando dirección...";
+
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}&zoom=18&addressdetails=1`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const address = data.display_name || `Lat: ${currentLat.toFixed(4)}, Lon: ${currentLng.toFixed(4)}`;
+                        document.getElementById('storeAddress').value = address;
+                    })
+                    .catch(error => {
+                        console.error('Error al obtener la dirección:', error);
+                        document.getElementById('storeAddress').value = `Lat: ${currentLat.toFixed(4)}, Lon: ${currentLng.toFixed(4)}`;
+                    });
+            });
+        }
+
+        function switchTab(tab) {
+            const sections = ['form-store', 'form-driver', 'section-clients', 'section-list', 'section-orders', 'section-analytics', 'section-gps'];
+            const buttons = ['btn-store', 'btn-driver', 'btn-clients', 'btn-list', 'btn-orders', 'btn-analytics', 'btn-gps'];
+
+            sections.forEach(secId => document.getElementById(secId).classList.add('hidden'));
+            buttons.forEach(btnId => {
+                const b = document.getElementById(btnId);
+                b.className = "tab-btn flex items-center gap-2 py-2 px-3.5 font-semibold text-xs rounded-xl transition text-gray-600 hover:bg-gray-100";
+            });
+
+            const activeSecMap = {
+                'store': 'form-store',
+                'driver': 'form-driver',
+                'clients': 'section-clients',
+                'list': 'section-list',
+                'orders': 'section-orders',
+                'analytics': 'section-analytics',
+                'gps': 'section-gps'
+            };
+
+            document.getElementById(activeSecMap[tab]).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tab);
+            activeBtn.className = "tab-btn flex items-center gap-2 py-2 px-3.5 font-bold text-xs rounded-xl transition bg-emerald-700 text-white shadow-sm";
+
+            if (tab === 'store' && map) {
+                setTimeout(() => { map.invalidateSize(); }, 100);
+            }
+            if (tab === 'clients') { renderClients(); }
+            if (tab === 'list') { renderLists(); }
+            if (tab === 'orders') { renderOrders(); }
+            if (tab === 'analytics') { renderAnalytics(); }
+            if (tab === 'gps') { initOrUpdateGPSMap(); }
+        }
+
+        function handleStoreSubmit(e) {
+            e.preventDefault();
+            const ruc = document.getElementById('storeRuc').value;
+            if (ruc.length !== 11) {
+                showModal('Atención', 'El RUC debe tener exactamente 11 dígitos.', true);
+                return;
+            }
+
+            const pin = document.getElementById('storePin').value;
+            if (pin.length !== 6) {
+                showModal('Atención', 'El PIN debe tener exactamente 6 dígitos.', true);
+                return;
+            }
+
+            const address = document.getElementById('storeAddress').value;
+            if (!address || address === 'Buscando dirección...' || address === 'Haz clic en el mapa...') {
+                showModal('Atención', 'Por favor selecciona una ubicación válida haciendo clic en el mapa.', true);
+                return;
+            }
+
+            const category = document.getElementById('storeCategory').value;
+            const store = {
+                name: document.getElementById('storeName').value,
+                ruc: ruc,
+                category: category,
+                deliveryRule: category === 'Campo' ? '1 día de anticipación' : 'Mismo día',
+                phone: document.getElementById('storePhone').value,
+                pin: pin,
+                address: address,
+                desc: document.getElementById('storeDesc').value,
+                lat: currentLat,
+                lng: currentLng
+            };
+            
+            if (editingStoreIndex !== null) {
+                storesData[editingStoreIndex] = store;
+                showModal('¡Actualización Exitosa!', 'Los datos de la tienda se han actualizado correctamente.');
+                resetStoreForm();
+            } else {
+                storesData.push(store);
+                showModal('¡Registro Exitoso!', 'La tienda y sus credenciales se han sincronizado correctamente.');
+                document.getElementById('storeForm').reset();
+                document.getElementById('storeAddress').value = '';
+                updateCategoryHint();
+                if (marker) {
+                    map.removeLayer(marker);
+                    marker = null;
+                }
+                currentLat = null;
+                currentLng = null;
+            }
+            
+            localStorage.setItem('astoreeco_stores', JSON.stringify(storesData));
+        }
+
+        function handleDriverSubmit(e) {
+            e.preventDefault();
+            const pin = document.getElementById('driverPin').value;
+            if (pin.length !== 6) {
+                showModal('Atención', 'El PIN debe tener exactamente 6 dígitos.', true);
+                return;
+            }
+
+            const driver = {
+                name: document.getElementById('driverName').value,
+                dni: document.getElementById('driverDni').value,
+                phone: document.getElementById('driverPhone').value,
+                pin: pin,
+                vehicle: document.getElementById('driverVehicle').value,
+                plate: document.getElementById('driverPlate').value
+            };
+            
+            if (editingDriverIndex !== null) {
+                driversData[editingDriverIndex] = driver;
+                showModal('¡Actualización Exitosa!', 'Los datos del repartidor se han actualizado correctamente.');
+                resetDriverForm();
+            } else {
+                driversData.push(driver);
+                showModal('¡Registro Exitoso!', 'El repartidor y sus credenciales se han sincronizado correctamente.');
+                document.getElementById('driverForm').reset();
+            }
+
+            localStorage.setItem('astoreeco_drivers', JSON.stringify(driversData));
+        }
+
+        function editStore(index) {
+            const store = storesData[index];
+            editingStoreIndex = index;
+
+            document.getElementById('storeName').value = store.name;
+            document.getElementById('storeRuc').value = store.ruc || '';
+            document.getElementById('storeCategory').value = store.category;
+            updateCategoryHint();
+            document.getElementById('storePhone').value = store.phone;
+            document.getElementById('storePin').value = store.pin;
+            document.getElementById('storeAddress').value = store.address;
+            document.getElementById('storeDesc').value = store.desc || '';
+            
+            currentLat = store.lat || null;
+            currentLng = store.lng || null;
+
+            if (currentLat && currentLng) {
+                if (marker) {
+                    marker.setLatLng([currentLat, currentLng]);
+                } else {
+                    marker = L.marker([currentLat, currentLng]).addTo(map);
+                }
+                if (map) map.setView([currentLat, currentLng], 15);
+            }
+
+            document.getElementById('storeFormTitle').innerText = "Editar Comercio / Productor";
+            document.getElementById('storeSubmitBtn').innerText = "Actualizar Tienda";
+            document.getElementById('cancelStoreEdit').classList.remove('hidden');
+
+            switchTab('store');
+        }
+
+        function resetStoreForm() {
+            editingStoreIndex = null;
+            document.getElementById('storeForm').reset();
+            document.getElementById('storeAddress').value = '';
+            updateCategoryHint();
+            document.getElementById('storeFormTitle').innerText = "Registrar Nuevo Comercio / Productor";
+            document.getElementById('storeSubmitBtn').innerText = "Guardar Tienda";
+            document.getElementById('cancelStoreEdit').classList.add('hidden');
+            if (marker) {
+                map.removeLayer(marker);
+                marker = null;
+            }
+            currentLat = null;
+            currentLng = null;
+        }
+
+        function editDriver(index) {
+            const driver = driversData[index];
+            editingDriverIndex = index;
+
+            document.getElementById('driverName').value = driver.name;
+            document.getElementById('driverDni').value = driver.dni;
+            document.getElementById('driverPhone').value = driver.phone;
+            document.getElementById('driverPin').value = driver.pin;
+            document.getElementById('driverVehicle').value = driver.vehicle;
+            document.getElementById('driverPlate').value = driver.plate || '';
+
+            document.getElementById('driverFormTitle').innerText = "Editar Repartidor";
+            document.getElementById('driverSubmitBtn').innerText = "Actualizar Repartidor";
+            document.getElementById('cancelDriverEdit').classList.remove('hidden');
+
+            switchTab('driver');
+        }
+
+        function resetDriverForm() {
+            editingDriverIndex = null;
+            document.getElementById('driverForm').reset();
+            document.getElementById('driverFormTitle').innerText = "Registrar Nuevo Repartidor";
+            document.getElementById('driverSubmitBtn').innerText = "Guardar Repartidor";
+            document.getElementById('cancelDriverEdit').classList.add('hidden');
+        }
+
+        function confirmDeleteStore(index) {
+            showModal('¿Eliminar Tienda?', `¿Estás seguro de eliminar "${storesData[index].name}"? Esta acción no se puede deshacer.`, true, `
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 px-3 rounded-xl hover:bg-gray-200 transition text-sm">Cancelar</button>
+                <button onclick="deleteStore(${index})" class="flex-1 bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-red-700 transition text-sm shadow-md shadow-red-600/20">Sí, eliminar</button>
+            `);
+        }
+
+        function deleteStore(index) {
+            storesData.splice(index, 1);
+            localStorage.setItem('astoreeco_stores', JSON.stringify(storesData));
+            closeModal();
+            renderLists();
+        }
+
+        function confirmDeleteDriver(index) {
+            showModal('¿Eliminar Repartidor?', `¿Estás seguro de eliminar a "${driversData[index].name}"? Esta acción no se puede deshacer.`, true, `
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 px-3 rounded-xl hover:bg-gray-200 transition text-sm">Cancelar</button>
+                <button onclick="deleteDriver(${index})" class="flex-1 bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-red-700 transition text-sm shadow-md shadow-red-600/20">Sí, eliminar</button>
+            `);
+        }
+
+        function deleteDriver(index) {
+            driversData.splice(index, 1);
+            localStorage.setItem('astoreeco_drivers', JSON.stringify(driversData));
+            closeModal();
+            renderLists();
+        }
+
+        function confirmDeleteClient(index) {
+            showModal('¿Eliminar Cliente?', `¿Estás seguro de eliminar este registro de cliente?`, true, `
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 px-3 rounded-xl hover:bg-gray-200 transition text-sm">Cancelar</button>
+                <button onclick="deleteClient(${index})" class="flex-1 bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-red-700 transition text-sm shadow-md shadow-red-600/20">Sí, eliminar</button>
+            `);
+        }
+
+        function deleteClient(index) {
+            clientsData.splice(index, 1);
+            localStorage.setItem('astoreeco_clients', JSON.stringify(clientsData));
+            closeModal();
+            renderClients();
+        }
+
+        function setFilter(cat) {
+            currentFilter = cat;
+            document.getElementById('filter-all').className = "px-4 py-2 text-xs font-bold rounded-xl transition " + (cat === 'all' ? "bg-emerald-700 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200");
+            document.getElementById('filter-campo').className = "px-4 py-2 text-xs font-bold rounded-xl transition " + (cat === 'Campo' ? "bg-emerald-700 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200");
+            document.getElementById('filter-ciudad').className = "px-4 py-2 text-xs font-bold rounded-xl transition " + (cat === 'Ciudad' ? "bg-emerald-700 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200");
+            renderLists();
+        }
+
+        function toggleDetails(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+        }
+
+        function renderClients() {
+            clientsData = JSON.parse(localStorage.getItem('astoreeco_clients')) || JSON.parse(localStorage.getItem('astoreeco_users')) || [];
+            let ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            
+            document.getElementById('statTotalClients').innerText = clientsData.length;
+
+            const clientsList = document.getElementById('clientsAccordionList');
+            if (clientsData.length === 0) {
+                clientsList.innerHTML = '<p class="text-center text-gray-500 py-6 text-sm">No hay clientes registrados en el sistema actualmente.</p>';
+                return;
+            }
+
+            clientsList.innerHTML = clientsData.map((c, idx) => {
+                const clientPhone = c.phone || c.celular || '';
+                const clientOrders = ordersData.filter(o => o.clientPhone === clientPhone);
+                const totalSpent = clientOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+                return `
+                    <div class="border border-gray-200/80 rounded-2xl overflow-hidden bg-white shadow-sm transition hover:shadow">
+                        <button onclick="toggleDetails('client-details-${idx}')" class="w-full px-5 py-4 bg-gray-50/80 hover:bg-gray-100/80 flex justify-between items-center text-left focus:outline-none transition">
+                            <span class="font-bold text-gray-900 flex items-center gap-2.5 text-sm">
+                                <span class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shadow-inner">👤</span>
+                                +51 ${clientPhone} 
+                                <span class="px-2.5 py-1 text-xs rounded-full bg-indigo-50 text-indigo-800 font-semibold border border-indigo-200/60">${clientOrders.length} compras (S/ ${totalSpent.toFixed(2)})</span>
+                            </span>
+                            <span class="text-xs text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60">Ver detalle ▾</span>
+                        </button>
+                        <div id="client-details-${idx}" class="hidden p-5 border-t border-gray-200/80 bg-white text-sm space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/60">
+                                <p class="text-xs"><strong>Dirección:</strong> <span class="text-gray-700">${c.address || c.direccion || 'No especificada'}</span></p>
+                                <p class="text-xs"><strong>Referencia:</strong> <span class="text-amber-700 font-medium">${c.reference || c.referencia || 'Sin referencia'}</span></p>
+                                <p class="text-xs"><strong>PIN de Acceso:</strong> <span class="font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-lg font-bold border border-emerald-200/60">${c.pin || '******'}</span></p>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-bag-shopping text-emerald-600"></i> Historial de Compras (${clientOrders.length})
+                                </h4>
+                                ${clientOrders.length === 0 ? `
+                                    <p class="text-xs text-gray-500 italic py-2">Este cliente aún no ha registrado ninguna compra en la plataforma.</p>
+                                ` : `
+                                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                        ${clientOrders.map(o => `
+                                            <div class="border border-gray-200/80 rounded-xl p-3 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 text-xs">
+                                                <div>
+                                                    <span class="font-bold text-emerald-700">${o.id}</span> • <span class="text-gray-500">${o.date || 'Reciente'}</span>
+                                                    <span class="block text-gray-600 mt-0.5 font-medium">Método de pago: ${o.paymentMethod || 'Contra entrega'}</span>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <span class="font-extrabold text-emerald-900 text-sm">S/ ${o.total ? o.total.toFixed(2) : '0.00'}</span>
+                                                    <span class="px-2.5 py-1 rounded-full font-bold text-[10px] ${o.status && o.status.includes('Entregado') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${o.status || 'Pendiente'}</span>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                `}
+                            </div>
+
+                            <div class="pt-2 flex justify-end gap-2 border-t border-gray-100">
+                                <button onclick="confirmDeleteClient(${idx})" class="bg-red-50 text-red-600 hover:bg-red-100 px-3.5 py-2 rounded-xl text-xs font-bold transition">Eliminar Cliente</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderLists() {
+            storesData = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+            driversData = JSON.parse(localStorage.getItem('astoreeco_drivers')) || [];
+            clientsData = JSON.parse(localStorage.getItem('astoreeco_clients')) || JSON.parse(localStorage.getItem('astoreeco_users')) || [];
+
+            document.getElementById('statTotalStores').innerText = storesData.length;
+            document.getElementById('statFieldStores').innerText = storesData.filter(s => s.category === 'Campo').length;
+            document.getElementById('statCityStores').innerText = storesData.filter(s => s.category === 'Ciudad').length;
+            document.getElementById('statTotalDrivers').innerText = driversData.length;
+            document.getElementById('statTotalClients').innerText = clientsData.length;
+
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+
+            const storesList = document.getElementById('storesAccordionList');
+            const filteredStores = storesData.map((s, idx) => ({...s, originalIndex: idx})).filter(s => {
+                const matchesCat = (currentFilter === 'all' || s.category === currentFilter);
+                const matchesSearch = s.name.toLowerCase().includes(searchVal) || s.phone.includes(searchVal) || (s.ruc && s.ruc.includes(searchVal));
+                return matchesCat && matchesSearch;
+            });
+
+            if (filteredStores.length === 0) {
+                storesList.innerHTML = '<p class="text-center text-gray-500 py-6 text-sm">No se encontraron tiendas registradas.</p>';
+            } else {
+                storesList.innerHTML = filteredStores.map(s => `
+                    <div class="border border-gray-200/80 rounded-2xl overflow-hidden bg-white shadow-sm transition hover:shadow">
+                        <button onclick="toggleDetails('store-details-${s.originalIndex}')" class="w-full px-5 py-4 bg-gray-50/80 hover:bg-gray-100/80 flex justify-between items-center text-left focus:outline-none transition">
+                            <span class="font-bold text-gray-900 flex items-center gap-2.5 text-sm">
+                                <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shadow-inner">🌱</span>
+                                ${s.name} 
+                                <span class="px-2.5 py-1 text-xs rounded-full ${s.category === 'Campo' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'} font-semibold">${s.category}</span>
+                            </span>
+                            <span class="text-xs text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60">Ver datos ▾</span>
+                        </button>
+                        <div id="store-details-${s.originalIndex}" class="hidden p-5 border-t border-gray-200/80 bg-white text-sm space-y-2.5">
+                            <p class="text-xs"><strong>RUC:</strong> <span class="font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-lg font-bold border border-emerald-200/60">${s.ruc || 'No registrado'}</span></p>
+                            <p class="text-xs"><strong>Modalidad / Entrega:</strong> <span class="text-emerald-700 font-semibold">${s.deliveryRule || (s.category === 'Campo' ? '1 día de anticipación' : 'Mismo día')}</span></p>
+                            <p class="text-xs"><strong>Celular (Login):</strong> <span class="text-emerald-700 font-semibold">+51 ${s.phone}</span></p>
+                            <p class="text-xs"><strong>PIN de Acceso:</strong> <span class="font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-lg font-bold border border-emerald-200/60">${s.pin}</span></p>
+                            <p class="text-xs"><strong>Dirección:</strong> <span class="text-gray-700">${s.address}</span></p>
+                            <p class="text-xs"><strong>Descripción:</strong> <span class="text-gray-600">${s.desc || 'Sin descripción'}</span></p>
+                            <div class="pt-3 flex justify-end gap-2 border-t border-gray-100">
+                                <button onclick="editStore(${s.originalIndex})" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3.5 py-2 rounded-xl text-xs font-bold transition">Editar</button>
+                                <button onclick="confirmDeleteStore(${s.originalIndex})" class="bg-red-50 text-red-600 hover:bg-red-100 px-3.5 py-2 rounded-xl text-xs font-bold transition">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            const driversList = document.getElementById('driversAccordionList');
+            const filteredDrivers = driversData.map((d, idx) => ({...d, originalIndex: idx})).filter(d => {
+                return d.name.toLowerCase().includes(searchVal) || d.phone.includes(searchVal) || d.dni.includes(searchVal);
+            });
+
+            if (filteredDrivers.length === 0) {
+                driversList.innerHTML = '<p class="text-center text-gray-500 py-6 text-sm">No se encontraron repartidores registrados.</p>';
+            } else {
+                driversList.innerHTML = filteredDrivers.map(d => `
+                    <div class="border border-gray-200/80 rounded-2xl overflow-hidden bg-white shadow-sm transition hover:shadow">
+                        <button onclick="toggleDetails('driver-details-${d.originalIndex}')" class="w-full px-5 py-4 bg-gray-50/80 hover:bg-gray-100/80 flex justify-between items-center text-left focus:outline-none transition">
+                            <span class="font-bold text-gray-900 flex items-center gap-2.5 text-sm">
+                                <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shadow-inner">🛵</span>
+                                ${d.name} 
+                                <span class="px-2.5 py-1 text-xs rounded-full bg-purple-100 text-purple-800 font-semibold">${d.vehicle}</span>
+                            </span>
+                            <span class="text-xs text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60">Ver datos ▾</span>
+                        </button>
+                        <div id="driver-details-${d.originalIndex}" class="hidden p-5 border-t border-gray-200/80 bg-white text-sm space-y-2.5">
+                            <p class="text-xs"><strong>DNI:</strong> <span class="text-gray-700">${d.dni}</span></p>
+                            <p class="text-xs"><strong>Celular (Login):</strong> <span class="text-emerald-700 font-semibold">+51 ${d.phone}</span></p>
+                            <p class="text-xs"><strong>PIN de Acceso:</strong> <span class="font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-lg font-bold border border-emerald-200/60">${d.pin}</span></p>
+                            <p class="text-xs"><strong>Vehículo:</strong> <span class="text-gray-700">${d.vehicle} ${d.plate ? '('+d.plate+')' : ''}</span></p>
+                            <div class="pt-3 flex justify-end gap-2 border-t border-gray-100">
+                                <button onclick="editDriver(${d.originalIndex})" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3.5 py-2 rounded-xl text-xs font-bold transition">Editar</button>
+                                <button onclick="confirmDeleteDriver(${d.originalIndex})" class="bg-red-50 text-red-600 hover:bg-red-100 px-3.5 py-2 rounded-xl text-xs font-bold transition">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderOrders() {
+            let ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            const tbody = document.getElementById('ordersTableBody');
+            
+            if (ordersData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500 text-sm">No hay pedidos registrados en el sistema actualmente.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = ordersData.map((o, idx) => {
+                const deliv = o.deliveryDetails || {};
+                let badgeColor = "bg-amber-100 text-amber-800";
+                if(o.status && o.status.includes('ruta')) badgeColor = "bg-blue-100 text-blue-800";
+                if(o.status && o.status.includes('Entregado')) badgeColor = "bg-emerald-100 text-emerald-800";
+
+                return `
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="px-4 py-3.5">
+                            <span class="font-bold text-emerald-700">${o.id}</span>
+                            <span class="text-[10px] text-gray-400 block">${o.date || 'Reciente'}</span>
+                        </td>
+                        <td class="px-4 py-3.5">
+                            <strong class="text-gray-900 block">+51 ${o.clientPhone}</strong>
+                            <span class="text-xs text-gray-500">${deliv.address || 'Pucallpa'}</span>
+                            ${deliv.reference ? `<span class="text-[10px] text-amber-700 block font-medium">Ref: ${deliv.reference}</span>` : ''}
+                        </td>
+                        <td class="px-4 py-3.5 space-y-2">
+                            <div>
+                                <span class="font-extrabold text-emerald-800 text-sm">S/ ${o.total ? o.total.toFixed(2) : '0.00'}</span>
+                                <span class="text-[10px] text-gray-500 block">${o.paymentMethod || 'Contra entrega'}</span>
+                            </div>
+                            ${o.paymentReceipt ? `
+                                <div>
+                                    <button onclick="openImageModal('${o.paymentReceipt}')" class="text-[11px] text-emerald-700 font-bold underline flex items-center gap-1 bg-transparent border-0 cursor-pointer p-0">
+                                        <i class="fa-solid fa-receipt text-xs"></i> Ver voucher
+                                    </button>
+                                </div>
+                            ` : ''}
+                            ${o.deliveryPhoto ? `
+                                <div class="flex items-center gap-2 bg-emerald-50/80 p-1.5 rounded-xl border border-emerald-200/80 cursor-pointer hover:bg-emerald-100 transition" onclick="openImageModal('${o.deliveryPhoto}')">
+                                    <img src="${o.deliveryPhoto}" class="w-10 h-10 object-cover rounded-lg border border-emerald-400 shadow-sm flex-shrink-0">
+                                    <div>
+                                        <span class="text-[10px] font-bold text-emerald-950 block">Foto Entrega</span>
+                                        <span class="text-[10px] text-emerald-700 underline font-semibold">Ampliar</span>
+                                    </div>
+                                </div>
+                            ` : '<span class="text-[10px] text-gray-400 block">Sin foto</span>'}
+                        </td>
+                        <td class="px-4 py-3.5">
+                            <span class="px-3 py-1 text-xs rounded-full font-bold ${badgeColor}">${o.status || 'Pendiente'}</span>
+                        </td>
+                        <td class="px-4 py-3.5 text-center">
+                            <select onchange="updateOrderStatus('${o.id}', this.value)" class="text-xs border border-gray-300 rounded-xl p-2 bg-gray-50 font-semibold focus:ring-2 focus:ring-emerald-500">
+                                <option value="Cosecha programada (1 día ant.)" ${o.status==='Cosecha programada (1 día ant.)'?'selected':''}>Cosecha programada</option>
+                                <option value="En ruta de reparto" ${o.status==='En ruta de reparto'?'selected':''}>En ruta de reparto</option>
+                                <option value="Entregado en tu Mesa" ${o.status==='Entregado en tu Mesa'?'selected':''}>Entregado en tu Mesa</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            let allOrders = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            const index = allOrders.findIndex(o => o.id === orderId);
+            if (index !== -1) {
+                allOrders[index].status = newStatus;
+                localStorage.setItem('astoreeco_orders', JSON.stringify(allOrders));
+                renderOrders();
+                renderAnalytics();
+                renderClients();
+                showModal('Actualizado', `El estado del pedido ${orderId} se ha sincronizado correctamente.`);
+            }
+        }
+
+        function renderAnalytics() {
+            let ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            
+            const totalOrders = ordersData.length;
+            const totalRevenue = ordersData.reduce((acc, o) => acc + (o.total || 0), 0);
+            const avgTicket = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+
+            document.getElementById('analyticsTotalRevenue').innerText = `S/ ${totalRevenue.toFixed(2)}`;
+            document.getElementById('analyticsTotalOrders').innerText = totalOrders;
+            document.getElementById('analyticsAvgTicket').innerText = `S/ ${avgTicket.toFixed(2)}`;
+
+            let statusCounts = { 'Pendiente/Cosecha': 0, 'En ruta': 0, 'Entregado': 0 };
+            let paymentCounts = { 'Contra entrega': 0, 'Yape / Plin / Transferencia': 0 };
+
+            ordersData.forEach(o => {
+                if(o.status && o.status.includes('Entregado')) statusCounts['Entregado']++;
+                else if(o.status && o.status.includes('ruta')) statusCounts['En ruta']++;
+                else statusCounts['Pendiente/Cosecha']++;
+
+                if(o.paymentMethod && o.paymentMethod.toLowerCase().includes('contra')) {
+                    paymentCounts['Contra entrega']++;
+                } else {
+                    paymentCounts['Yape / Plin / Transferencia']++;
+                }
+            });
+
+            const ctxStatus = document.getElementById('ordersStatusChart').getContext('2d');
+            if(statusChartInstance) statusChartInstance.destroy();
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const ctxPay = document.getElementById('paymentMethodsChart').getContext('2d');
+            if(paymentChartInstance) paymentChartInstance.destroy();
+            paymentChartInstance = new Chart(ctxPay, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(paymentCounts),
+                    datasets: [{
+                        label: 'Nº Pedidos',
+                        data: Object.values(paymentCounts),
+                        backgroundColor: ['#10b981', '#6366f1'],
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function exportCSVReport() {
+            let ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            if(ordersData.length === 0) {
+                showModal('Atención', 'No hay datos de pedidos para exportar.', true);
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,ID,Fecha,TelefonoCliente,Direccion,Total,MetodoPago,Estado\r\n";
+            ordersData.forEach(o => {
+                const deliv = o.deliveryDetails || {};
+                const row = [o.id, o.date || '', o.clientPhone, `"${deliv.address || ''}"`, o.total || 0, `"${o.paymentMethod || ''}"`, `"${o.status || ''}"`];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `reporte_ventas_astoreeco_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function initOrUpdateGPSMap() {
+            let drivers = JSON.parse(localStorage.getItem('astoreeco_drivers')) || [];
+            let liveLocations = JSON.parse(localStorage.getItem('astoreeco_driver_locations')) || {};
+
+            if (!gpsMap) {
+                gpsMap = L.map('gpsMap').setView([-8.3791, -74.5539], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(gpsMap);
+            } else {
+                setTimeout(() => { gpsMap.invalidateSize(); }, 100);
+            }
+
+            const statusListEl = document.getElementById('gpsStatusList');
+            if(drivers.length === 0) {
+                statusListEl.innerHTML = '<p class="text-xs text-gray-500 col-span-3 text-center py-6">No hay repartidores registrados en el sistema para rastrear.</p>';
+                return;
+            }
+
+            statusListEl.innerHTML = drivers.map(d => {
+                const loc = liveLocations[d.phone];
+                const hasGPS = loc && loc.lat && loc.lng;
+
+                if (hasGPS) {
+                    if (gpsMarkers[d.phone]) {
+                        gpsMarkers[d.phone].setLatLng([loc.lat, loc.lng]);
+                    } else {
+                        gpsMarkers[d.phone] = L.marker([loc.lat, loc.lng]).addTo(gpsMap)
+                            .bindPopup(`<b>🛵 ${d.name}</b><br>Vehículo: ${d.vehicle}<br>Celular: ${d.phone}`);
+                    }
+                }
+
+                return `
+                    <div class="border border-gray-200/80 rounded-2xl p-4 bg-gray-50/80 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <span class="font-bold text-gray-900 block text-sm">🛵 ${d.name}</span>
+                            <span class="text-xs text-gray-500">Vehículo: ${d.vehicle} (${d.plate || 'Sin placa'})</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200/80 flex justify-between items-center text-xs">
+                            <span class="${hasGPS ? 'text-emerald-700 font-bold' : 'text-amber-600 font-medium'}">
+                                ${hasGPS ? '🟢 Con señal GPS activa' : '⚪ Sin reporte GPS aún'}
+                            </span>
+                            ${hasGPS ? `<button onclick="gpsMap.setView([${loc.lat},${loc.lng}], 16)" class="bg-emerald-600 text-white px-3 py-1.5 rounded-xl hover:bg-emerald-700 transition font-bold shadow-sm">Ver</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportData() {
+            const backupObj = {
+                stores: storesData,
+                drivers: driversData,
+                clients: clientsData,
+                orders: JSON.parse(localStorage.getItem('astoreeco_orders')) || [],
+                exportDate: new Date().toISOString()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `astoreeco_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function(e) {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (imported.stores && imported.drivers) {
+                            localStorage.setItem('astoreeco_stores', JSON.stringify(imported.stores));
+                            localStorage.setItem('astoreeco_drivers', JSON.stringify(imported.drivers));
+                            if(imported.clients) localStorage.setItem('astoreeco_clients', JSON.stringify(imported.clients));
+                            if(imported.orders) localStorage.setItem('astoreeco_orders', JSON.stringify(imported.orders));
+                            
+                            storesData = imported.stores;
+                            driversData = imported.drivers;
+                            clientsData = imported.clients || [];
+                            
+                            renderLists();
+                            renderClients();
+                            showModal('¡Restauración Exitosa!', 'Los datos se han importado correctamente desde el archivo JSON.');
+                        } else {
+                            showModal('Error de Formato', 'El archivo JSON no tiene la estructura válida de ASTOREECO.', true);
+                        }
+                    } catch (err) {
+                        showModal('Error de Lectura', 'No se pudo procesar el archivo JSON.', true);
+                    }
+                };
+            }
+        }
+    </script>
+</body>
+</html>

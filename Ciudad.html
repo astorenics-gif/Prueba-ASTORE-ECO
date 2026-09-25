@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASTOREECO - Catálogo y Accesos Unificados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body id="mainBody" class="bg-gray-50 font-sans min-h-screen flex flex-col justify-between transition-colors duration-300">
+
+    <!-- Header General -->
+    <header class="bg-emerald-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <span>🌱 ASTOREECO - Pucallpa</span>
+            </h1>
+            <div id="headerUserBox" class="hidden items-center gap-3">
+                <!-- Botón Modo Sol / Alto Contraste para Exteriores -->
+                <button onclick="toggleSolarMode()" id="solarModeBtn" class="text-xs bg-emerald-800 hover:bg-emerald-900 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-sun"></i> <span id="solarModeText">Modo Sol</span>
+                </button>
+                <span id="headerUserName" class="text-sm bg-emerald-800 px-3 py-1 rounded-full"></span>
+                <button onclick="logout()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-md font-semibold transition">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-grow flex items-center justify-center">
+
+        <!-- VISTA DE LOGIN INTELIGENTE Y UNIFICADO -->
+        <div id="view-login" class="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 max-w-md w-full shadow-2xl border border-gray-100 my-6 space-y-7">
+            <div class="text-center space-y-3">
+                <div class="w-16 h-16 bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold shadow-lg shadow-emerald-600/30">
+                    <i class="fa-solid fa-seedling"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black tracking-wide text-gray-900">ASTORE ECO</h2>
+                    <p class="text-xs font-medium text-emerald-700 mt-1 uppercase tracking-wider">Acceso Unificado Inteligente</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleUnifiedLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-emerald-600"></i> RUC (11d), DNI (8d) o Celular (9d)
+                    </label>
+                    <input type="text" id="loginIdentifier" required placeholder="Ingresa tu documento o celular" class="w-full px-4 py-3.5 text-sm rounded-2xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50/50 transition font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-emerald-600"></i> PIN de Acceso (6 dígitos)
+                    </label>
+                    <input type="password" id="loginPin" maxlength="6" pattern="[0-9]{6}" required placeholder="••••••" class="w-full px-4 py-3.5 text-sm rounded-2xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50/50 font-mono tracking-widest transition text-center text-lg">
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-extrabold py-4 px-4 rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition shadow-lg shadow-emerald-600/25 text-sm flex items-center justify-center gap-2 group">
+                    <span>Ingresar al Sistema</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket transition group-hover:translate-x-1"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- VISTA 3: PANEL DE TIENDA / COMERCIO URBANO -->
+        <div id="view-store-panel" class="hidden space-y-6 w-full">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800 mb-1">🏪 Panel de Tienda / Comercio (Ciudad)</h2>
+                        <p class="text-sm text-gray-600">Bienvenido, <span id="storePanelName" class="font-semibold text-emerald-700"></span></p>
+                    </div>
+                </div>
+                
+                <div id="storeLogoHeader" class="flex items-center gap-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <div id="storeLogoHeaderBox" class="w-16 h-16 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center overflow-hidden shadow-sm"><span class="text-2xl">🏪</span></div>
+                    <div><p class="text-[11px] text-emerald-700 uppercase font-bold tracking-wider">Logo del negocio</p><p id="storeLogoHeaderStatus" class="text-sm font-semibold text-gray-700">Sin logo agregado</p></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm">
+                    <div>
+                        <p class="text-[11px] text-gray-500 uppercase font-semibold">Categoría</p>
+                        <p id="storePanelCategory" class="font-bold text-gray-800">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-gray-500 uppercase font-semibold">Celular (Login)</p>
+                        <p id="storePanelPhone" class="font-bold text-gray-800">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-gray-500 uppercase font-semibold">Dirección</p>
+                        <p id="storePanelAddress" class="font-medium text-gray-800 truncate">-</p>
+                    </div>
+                </div>
+
+                <!-- MINI-DASHBOARD DE MÉTRICAS DEL DÍA -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                    <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Ventas del Día</p>
+                            <p id="dashTotalSales" class="text-lg font-black text-emerald-900 mt-0.5">S/ 0.00</p>
+                        </div>
+                        <div class="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-wallet"></i></div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Pedidos Registrados</p>
+                            <p id="dashTotalOrders" class="text-lg font-black text-amber-900 mt-0.5">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-amber-600 text-white rounded-xl flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-bag-shopping"></i></div>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 p-3.5 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] font-bold text-purple-800 uppercase tracking-wider">Productos Activos</p>
+                            <p id="dashTotalProducts" class="text-lg font-black text-purple-900 mt-0.5">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestañas del Panel de Tienda Separadas -->
+            <div class="flex border-b border-gray-200 gap-2 overflow-x-auto">
+                <button onclick="switchStoreTab('emit')" id="btn-store-emit" class="py-2.5 px-4 font-semibold text-emerald-700 border-b-2 border-emerald-700 focus:outline-none transition text-sm whitespace-nowrap">📦 Emitir Pedido</button>
+                <button onclick="switchStoreTab('clients')" id="btn-store-clients" class="py-2.5 px-4 font-semibold text-gray-500 focus:outline-none transition text-sm whitespace-nowrap">🛒 Pedidos de Clientes</button>
+                <button onclick="switchStoreTab('products')" id="btn-store-products" class="py-2.5 px-4 font-semibold text-gray-500 focus:outline-none transition text-sm whitespace-nowrap">🛍️ Mis Productos</button>
+                <button onclick="switchStoreTab('drivers')" id="btn-store-drivers" class="py-2.5 px-4 font-semibold text-gray-500 focus:outline-none transition text-sm whitespace-nowrap">🛵 Mis Repartidores</button>
+                <button onclick="switchStoreTab('map')" id="btn-store-map" class="py-2.5 px-4 font-semibold text-gray-500 focus:outline-none transition text-sm whitespace-nowrap">🗺️ Mapa en vivo</button>
+                <button onclick="switchStoreTab('logo')" id="btn-store-logo" class="py-2.5 px-4 font-semibold text-gray-500 focus:outline-none transition text-sm whitespace-nowrap">🖼️ Mi Logo</button>
+            </div>
+
+            <!-- MAPA EN TIEMPO REAL DE REPARTIDORES -->
+            <div id="sec-store-map" class="hidden bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 border-b pb-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">🗺️ Repartidores en tiempo real</h3>
+                        <p class="text-sm text-gray-500 mt-1">Visualiza en el mapa dónde se encuentran tus repartidores conectados.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-2 text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-2 rounded-xl border border-emerald-200"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span id="mapLiveStatus">Actualizando...</span></span>
+                        <button type="button" onclick="refreshStoreDriverMap()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-emerald-700">En línea</p><p id="mapOnlineCount" class="text-xl font-black text-emerald-900">0</p></div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-blue-700">Con GPS</p><p id="mapGpsCount" class="text-xl font-black text-blue-900">0</p></div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-amber-700">Sin señal</p><p id="mapOfflineCount" class="text-xl font-black text-amber-900">0</p></div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-gray-600">Total</p><p id="mapTotalCount" class="text-xl font-black text-gray-900">0</p></div>
+                </div>
+                <div id="storeDriverMap" class="w-full h-[420px] md:h-[520px] rounded-2xl overflow-hidden border border-gray-200 shadow-inner"></div>
+                <div id="storeDriverMapList" class="space-y-2"></div>
+                <p class="text-[11px] text-gray-400">La ubicación se actualiza mientras el repartidor tenga su sesión iniciada y el GPS activo. Se muestra la última ubicación transmitida.</p>
+            </div>
+
+            <!-- GESTIÓN DEL LOGO DEL NEGOCIO -->
+            <div id="sec-store-logo" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-5">
+                <div><h3 class="text-lg font-bold text-gray-800">🖼️ Logo de tu negocio</h3><p class="text-sm text-gray-500 mt-1">Agrega el logo que identificará a tu comercio en ASTORE ECO.</p></div>
+                <div class="flex flex-col md:flex-row items-center gap-6 bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                    <div class="w-32 h-32 rounded-2xl bg-white border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shadow-sm"><span id="storeLogoPlaceholder" class="text-4xl">🏪</span><img id="storeLogoPreview" src="" alt="Logo del negocio" class="hidden w-full h-full object-contain p-2"></div>
+                    <div class="flex-1 w-full"><p class="font-bold text-gray-800">Imagen del logo</p><p class="text-xs text-gray-500 mt-1 mb-4">PNG, JPG o SVG. Máximo 2 MB.</p>
+                        <div class="flex flex-wrap gap-2"><label class="cursor-pointer bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition inline-flex items-center gap-2"><i class="fa-solid fa-upload"></i> Agregar logo<input id="storeLogoInput" type="file" accept="image/png,image/jpeg,image/svg+xml" class="hidden" onchange="handleStoreLogoUpload(event)"></label>
+                        <button type="button" onclick="removeStoreLogo()" class="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-sm font-bold border border-red-200"><i class="fa-solid fa-trash"></i> Eliminar logo</button></div>
+                        <p id="storeLogoMessage" class="text-xs mt-3 font-semibold text-gray-500"></p></div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 1: EMITIR PEDIDO MANUAL -->
+            <div id="sec-store-emit" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+                <h3 class="text-lg font-bold text-gray-800 border-b pb-3">📦 Emitir Pedido Manual, Pago y Vuelto</h3>
+                <form id="orderForm" onsubmit="handleOrderSubmit(event)" class="space-y-4 bg-gray-50 p-4 rounded-xl border">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Nombre del Cliente</label>
+                            <input type="text" id="orderClientName" required class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm bg-white" placeholder="Ej. María López">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Celular del Cliente</label>
+                            <input type="tel" id="orderClientPhone" required class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm bg-white" placeholder="999999999">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Asignar Repartidor</label>
+                            <select id="orderDriverSelect" required class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm bg-white">
+                                <option value="">Selecciona un repartidor...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Dirección de Entrega</label>
+                        <input type="text" id="orderAddress" required class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm bg-white" placeholder="Jr. Tarapacá 456, Pucallpa">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Detalle / Productos</label>
+                            <input type="text" id="orderItemsDesc" required class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm bg-white" placeholder="Ej. 2 Juanes">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Monto Total (S/.)</label>
+                            <input type="number" step="0.01" id="orderTotal" oninput="calculateChange()" required class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm bg-white" placeholder="35.00">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Método de Pago</label>
+                            <select id="orderPaymentMethod" class="w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm font-semibold text-emerald-700 bg-white">
+                                <option value="Efectivo">💵 Efectivo</option>
+                                <option value="Yape">🟣 Yape</option>
+                                <option value="Plin">🔵 Plin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Calculadora de Vuelto Rápida -->
+                    <div id="changeCalculatorBox" class="bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200 flex flex-col md:flex-row items-center justify-between gap-3">
+                        <div class="w-full md:w-auto">
+                            <label class="block text-[11px] font-bold text-emerald-900 uppercase">¿Con cuánto paga el cliente? (Efectivo)</label>
+                            <input type="number" step="0.01" id="orderCashGiven" oninput="calculateChange()" placeholder="Ej. 50.00" class="w-full md:w-48 mt-1 rounded-lg border-emerald-300 bg-white p-2 text-sm font-bold">
+                        </div>
+                        <div class="text-right w-full md:w-auto">
+                            <p class="text-[11px] font-bold text-emerald-900 uppercase">Vuelto Calculado</p>
+                            <p id="orderChangeDisplay" class="text-xl font-black text-emerald-700 mt-0.5">S/ 0.00</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button type="submit" class="flex-1 bg-emerald-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-emerald-700 transition text-sm shadow-md flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Emitir y Enviar Pedido
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- PESTAÑA 2: PEDIDOS DE CLIENTES -->
+            <div id="sec-store-clients" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6 hidden">
+                <h3 class="text-lg font-bold text-gray-800 border-b pb-3">🛒 Pedidos Recibidos de Clientes (Gestión en Tiempo Real)</h3>
+                <div id="clientOrdersContainer" class="space-y-3">
+                    <p class="text-xs text-gray-400 text-center py-6">No hay pedidos registrados aún.</p>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 3: GESTIÓN DE PRODUCTOS -->
+            <div id="sec-store-products" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6 hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-3 gap-3">
+                    <h3 class="text-lg font-bold text-gray-800">🛍️ Mis Productos Registrados y Stock</h3>
+                    <div class="w-full md:w-64">
+                        <input type="text" id="searchProductInput" oninput="renderStoreProducts()" placeholder="🔍 Buscar en mis productos..." class="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+                
+                <form id="productForm" onsubmit="handleProductSubmit(event)" class="space-y-4 bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                    <input type="hidden" id="editingProductId">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                                <span>Nombre del Producto</span>
+                                <span class="text-[10px] text-emerald-700 font-normal"><i class="fa-solid fa-wand-magic-sparkles"></i> IA Vocabulario</span>
+                            </label>
+                            <input type="text" id="prodName" required onblur="checkPeruvianSmartFill()" class="w-full rounded-xl border p-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500 font-medium" placeholder="Ej. Juane, Suri, Cecina...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Precio (S/.)</label>
+                            <input type="number" step="0.01" id="prodPrice" required class="w-full rounded-xl border p-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500" placeholder="15.00">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Stock</label>
+                                <input type="number" id="prodStock" min="0" value="20" required class="w-full rounded-xl border p-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500" placeholder="20">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Unidad</label>
+                                <select id="prodUnit" class="w-full rounded-xl border p-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500">
+                                    <option value="plato">plato</option>
+                                    <option value="porción">porción</option>
+                                    <option value="kg">kg</option>
+                                    <option value="unidad">unidad</option>
+                                    <option value="vaso">vaso</option>
+                                    <option value="botella">botella</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Descripción del Producto</label>
+                        <textarea id="prodDesc" rows="2" class="w-full rounded-xl border p-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500" placeholder="Detalla los ingredientes..."></textarea>
+                    </div>
+
+                    <!-- SUBPRODUCTOS / EXTRAS / ACOMPAÑAMIENTOS -->
+                    <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-3">
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center justify-between">
+                            <span>Subproductos / Extras / Acompañamientos</span>
+                            <span class="text-[10px] text-emerald-700 font-normal">Opcional</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="subprodName" placeholder="Ej. Porción extra de yuca, Ají charapita..." class="w-full rounded-xl border p-2.5 text-xs bg-white focus:ring-2 focus:ring-emerald-500">
+                            <input type="number" step="0.01" id="subprodPrice" placeholder="Precio S/." class="w-28 rounded-xl border p-2.5 text-xs bg-white focus:ring-2 focus:ring-emerald-500">
+                            <button type="button" onclick="addSubproductToList()" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> Agregar
+                            </button>
+                        </div>
+                        <div id="subproductsListContainer" class="space-y-1.5 pt-1">
+                            <p class="text-[11px] text-gray-400 italic">No hay subproductos agregados para este ítem.</p>
+                        </div>
+                    </div>
+
+                    <!-- FOTO PRECISADA CON FILTROS, IA Y ESTUDIO PRO -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Foto del Producto (Diccionario, IA y Estudio Pro)</label>
+                        
+                        <div class="grid grid-cols-4 gap-1.5 mb-3">
+                            <button type="button" onclick="switchImageSource('file')" id="tabImgFile" class="py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-emerald-600 text-white transition shadow-sm">📁 Archivo</button>
+                            <button type="button" onclick="switchImageSource('web')" id="tabImgWeb" class="py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition">🌐 Buscador</button>
+                            <button type="button" onclick="switchImageSource('ai')" id="tabImgAI" class="py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition">✨ IA</button>
+                            <button type="button" onclick="switchImageSource('studio')" id="tabImgStudio" class="py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition">🎨 Estudio Pro</button>
+                        </div>
+
+                        <div id="imgSourceFileContainer">
+                            <input type="file" id="prodImageFile" accept="image/*" onchange="handleFilePreview(event)" class="w-full text-xs text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border rounded-xl bg-white p-2">
+                        </div>
+
+                        <div id="imgSourceWebContainer" class="hidden space-y-2.5">
+                            <div class="flex gap-2">
+                                <input type="text" id="webImageQuery" placeholder="Ej. Juane, Suri, Tacacho..." class="w-full rounded-xl border p-2.5 text-xs bg-white focus:ring-2 focus:ring-blue-500">
+                                <button type="button" onclick="searchWebImages()" class="bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-blue-700 transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Buscar
+                                </button>
+                            </div>
+                            <div id="webImagesResults" class="grid grid-cols-3 gap-2 pt-1">
+                                <p class="text-[11px] text-gray-400 col-span-3 text-center py-2">Escribe cualquier plato regional y pulsa Buscar.</p>
+                            </div>
+                        </div>
+
+                        <div id="imgSourceAIContainer" class="hidden space-y-2.5">
+                            <div class="flex gap-2">
+                                <input type="text" id="aiImagePrompt" placeholder="Ej. plato típico de juane de gallina" class="w-full rounded-xl border p-2.5 text-xs bg-white focus:ring-2 focus:ring-purple-500">
+                                <button type="button" onclick="generateAIProductImage()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs hover:from-purple-700 hover:to-indigo-700 transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="imgSourceStudioContainer" class="hidden space-y-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                            <div class="flex items-center justify-between border-b pb-2">
+                                <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-sliders text-emerald-600"></i> Editor Fotográfico Pro
+                                </h4>
+                                <button type="button" onclick="resetStudioFilters()" class="text-[10px] text-red-600 hover:underline font-bold">Restaurar</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-600 block mb-1">Brillo</label>
+                                    <input type="range" id="studioBrightness" min="70" max="150" value="100" oninput="applyStudioFilters()" class="w-full accent-emerald-600">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-600 block mb-1">Contraste</label>
+                                    <input type="range" id="studioContrast" min="70" max="150" value="100" oninput="applyStudioFilters()" class="w-full accent-emerald-600">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pt-1">
+                                <button type="button" onclick="applyStudioPreset('gourmet')" class="flex-1 bg-emerald-50 border border-emerald-200 py-2 rounded-xl text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-sm">✨ Realce Gourmet</button>
+                                <button type="button" onclick="applyStudioPreset('vibrant')" class="flex-1 bg-blue-50 border border-blue-200 py-2 rounded-xl text-[11px] font-bold text-blue-800 hover:bg-blue-100 transition shadow-sm">🌿 Color Amazónico</button>
+                            </div>
+                        </div>
+
+                        <div id="productPreviewWrapper" class="hidden mt-3 p-3 bg-gray-100/90 rounded-2xl border border-gray-200 flex items-center justify-between gap-3 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <img id="productPreviewImg" src="" class="w-16 h-16 object-cover rounded-xl border border-gray-300 shadow-md cursor-pointer hover:opacity-85 transition" onclick="openImageModal(currentSelectedImageUrl)" title="Ampliar">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-eye text-emerald-600"></i> Imagen lista
+                                    </p>
+                                    <p class="text-[11px] text-gray-500">Filtros de Estudio Pro aplicados.</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="clearProductImage()" class="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-2 rounded-xl text-xs font-bold transition">Quitar</button>
+                        </div>
+                        <input type="hidden" id="finalProductImageUrl" value="">
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" id="productSubmitBtn" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition text-sm shadow-md">Guardar Producto</button>
+                        <button type="button" onclick="resetProductForm()" id="productCancelBtn" class="hidden bg-gray-200 text-gray-700 font-bold px-4 py-3 rounded-xl hover:bg-gray-300 transition text-sm">Cancelar</button>
+                    </div>
+                </form>
+
+                <div id="storeProductsTableBody" class="space-y-3 pt-2"></div>
+            </div>
+
+            <!-- PESTAÑA 4: GESTIÓN DE REPARTIDORES -->
+            <div id="sec-store-drivers" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6 hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-3">
+                    <div><h3 class="text-lg font-bold text-gray-800">🛵 Mis Repartidores</h3><p class="text-sm text-gray-500 mt-1">Registra y administra los repartidores de tu negocio.</p></div>
+                    <button type="button" onclick="openDriverForm()" class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition shadow-sm"><i class="fa-solid fa-plus"></i> Registrar Repartidor</button>
+                </div>
+                <form id="driverForm" onsubmit="saveStoreDriver(event)" class="hidden bg-gray-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                    <input type="hidden" id="editingDriverId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1">Nombre completo</label><input id="driverName" required class="w-full rounded-xl border p-3 text-sm bg-white" placeholder="Ej. Carlos Pérez"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1">Celular</label><input id="driverPhone" required pattern="[0-9]{9}" maxlength="9" class="w-full rounded-xl border p-3 text-sm bg-white" placeholder="999999999"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1">DNI</label><input id="driverDni" required pattern="[0-9]{8}" maxlength="8" class="w-full rounded-xl border p-3 text-sm bg-white" placeholder="12345678"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1">PIN de acceso</label><input id="driverPin" required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" class="w-full rounded-xl border p-3 text-sm bg-white font-mono tracking-widest" placeholder="6 dígitos"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1">Vehículo</label><select id="driverVehicle" class="w-full rounded-xl border p-3 text-sm bg-white"><option value="Moto">🏍️ Moto</option><option value="Mototaxi">🛺 Mototaxi</option><option value="Bicicleta">🚲 Bicicleta</option><option value="Auto">🚗 Auto</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1">Estado</label><select id="driverStatus" class="w-full rounded-xl border p-3 text-sm bg-white"><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select></div>
+                    </div>
+                    <div class="flex gap-2"><button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Guardar Repartidor</button><button type="button" onclick="closeDriverForm()" class="bg-gray-200 text-gray-700 font-bold px-5 py-3 rounded-xl">Cancelar</button></div>
+                </form>
+                <div id="storeDriversTableBody" class="space-y-3"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Personalizado -->
+    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-2xl border border-gray-100">
+            <div id="modalIcon" class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner">✓</div>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-800 mb-2">¡Aviso!</h3>
+            <p id="modalMessage" class="text-sm text-gray-600 mb-6 leading-relaxed">Mensaje.</p>
+            <div>
+                <button onclick="closeModal()" class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-emerald-700 transition shadow-md text-sm">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VISOR DE IMÁGENES -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+        <div class="relative max-w-lg w-full bg-white rounded-3xl overflow-hidden shadow-2xl p-4 flex flex-col items-center" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute top-4 right-4 bg-gray-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold hover:bg-gray-800 transition z-10">✕</button>
+            <h3 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">Vista Previa Ampliada</h3>
+            <img id="modalImageFull" src="" class="w-full max-h-[70vh] object-contain rounded-2xl border bg-gray-50">
+        </div>
+    </div>
+
+    <footer class="text-center py-4 text-xs text-gray-400">
+        ASTOREECO Pucallpa &copy; 2026
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let storesData = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+        let driversData = JSON.parse(localStorage.getItem('astoreeco_drivers')) || [];
+        let productsData = JSON.parse(localStorage.getItem('astoreeco_products')) || [];
+        let ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+
+        let currentLoggedStorePhone = localStorage.getItem('astoreeco_current_store') || null;
+        let currentSelectedImageUrl = '';
+        let isSolarModeActive = false;
+        let currentSubproductsList = [];
+
+        const baseDatosFiltrosCocona = {
+            "cocona": { termino: "cocona fruta amazonica fresca entera", desc: "Fruta amazónica fresca y ácida ideal para jugos y ají de cocona.", unit: "kg", price: 6.00, img: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&q=80" },
+            "juane": { termino: "juane de gallina plato tipico selva peruana", desc: "Tradicional juane de arroz con gallina de chacra, envuelto y cocido en hoja de bijao.", unit: "unidad", price: 15.00, img: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80" },
+            "tacacho": { termino: "tacacho con cecina plato tipico", desc: "Majado de plátano verde con manteca de cerdo y chicharrón, acompañado de cecina regional.", unit: "plato", price: 22.00, img: "https://images.unsplash.com/photo-1626353675865-1f9e2b1686c1?w=400&q=80" },
+            "cecina": { termino: "cecina ahumada regional amazonica", desc: "Jugosa cecina ahumada regional acompañada de patacones o yuca frita.", unit: "plato", price: 20.00, img: "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&q=80" },
+            "patarashca": { termino: "patarashca pescado amazonico al carbon", desc: "Pescado de río fresco sazonado con sachaculantro y ají dulce, envuelto en bijao y asado al carbón.", unit: "plato", price: 20.00, img: "https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?w=400&q=80" },
+            "inchicapi": { termino: "sopa inchicapi de gallina amazonica", desc: "Sopa espesa y nutritiva de gallina de chacra con maní molido, yuca y sacha culantro.", unit: "plato", price: 18.00, img: "https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80" },
+            "aguajina": { termino: "aguajina bebida de aguaje amazonico", desc: "Refrescante bebida nutritiva a base de pulpa de aguaje con un toque de azúcar y hielo.", unit: "vaso", price: 4.00, img: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&q=80" },
+            "suri": { termino: "suri gusano comestible amazonico", desc: "Exquisito y nutritivo suri de palmera rico en proteínas, preparado al carbón o frito.", unit: "porción", price: 12.00, img: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&q=80" },
+            "camu camu": { termino: "camu camu fruta vitamina c", desc: "Fruta amazónica con el más alto contenido de vitamina C, ideal para jugos y néctares.", unit: "kg", price: 9.00, img: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80" },
+            "timbuche": { termino: "timbuche sopa de pescado amazonico", desc: "Sopa levantamuertos de pescado fresco de río con sacha culantro y ají dulce.", unit: "plato", price: 16.00, img: "https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80" }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (currentLoggedStorePhone) {
+                const foundStore = storesData.find(s => String(s.phone) === String(currentLoggedStorePhone));
+                if (foundStore) showStoreView(foundStore);
+                else logout();
+            }
+        });
+
+        // GESTIÓN DE SUBPRODUCTOS EN EL FORMULARIO
+        function addSubproductToList() {
+            const nameInput = document.getElementById('subprodName');
+            const priceInput = document.getElementById('subprodPrice');
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
+
+            if (!name || isNaN(price) || price < 0) {
+                showModal("Atención", "Ingresa un nombre válido y un precio para el subproducto.", true);
+                return;
+            }
+
+            currentSubproductsList.push({ id: Date.now() + Math.random(), name, price });
+            nameInput.value = '';
+            priceInput.value = '';
+            renderFormSubproducts();
+        }
+
+        function removeSubproductFromList(id) {
+            currentSubproductsList = currentSubproductsList.filter(sp => sp.id !== id);
+            renderFormSubproducts();
+        }
+
+        function renderFormSubproducts() {
+            const container = document.getElementById('subproductsListContainer');
+            if (currentSubproductsList.length === 0) {
+                container.innerHTML = '<p class="text-[11px] text-gray-400 italic">No hay subproductos agregados para este ítem.</p>';
+                return;
+            }
+            container.innerHTML = currentSubproductsList.map(sp => `
+                <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-emerald-100 shadow-sm text-xs">
+                    <span class="font-medium text-gray-800">${sp.name} — <strong class="text-emerald-700">S/ ${sp.price.toFixed(2)}</strong></span>
+                    <button type="button" onclick="removeSubproductFromList(${sp.id})" class="text-red-600 hover:text-red-800 font-bold px-2 py-0.5">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // MODO SOL / ALTO CONTRASTE
+        function toggleSolarMode() {
+            isSolarModeActive = !isSolarModeActive;
+            const body = document.getElementById('mainBody');
+            const btnText = document.getElementById('solarModeText');
+            const btn = document.getElementById('solarModeBtn');
+
+            if (isSolarModeActive) {
+                body.className = "bg-yellow-50 font-sans min-h-screen flex flex-col justify-between transition-colors duration-300";
+                btn.className = "text-xs bg-yellow-900 text-yellow-100 hover:bg-yellow-950 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-md border border-yellow-400";
+                btnText.innerText = "Modo Normal";
+                showModal("Modo Sol Activado", "Contraste elevado para visualización óptima bajo luz solar directa en exteriores.", false);
+            } else {
+                body.className = "bg-gray-50 font-sans min-h-screen flex flex-col justify-between transition-colors duration-300";
+                btn.className = "text-xs bg-emerald-800 hover:bg-emerald-900 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow-sm";
+                btnText.innerText = "Modo Sol";
+            }
+        }
+
+        // CALCULADORA DE VUELTO RÁPIDA
+        function calculateChange() {
+            const total = parseFloat(document.getElementById('orderTotal').value) || 0;
+            const given = parseFloat(document.getElementById('orderCashGiven').value) || 0;
+            const changeDisplay = document.getElementById('orderChangeDisplay');
+
+            if (given >= total) {
+                const change = given - total;
+                changeDisplay.innerText = `S/ ${change.toFixed(2)}`;
+                changeDisplay.className = "text-xl font-black text-emerald-700 mt-0.5";
+            } else {
+                changeDisplay.innerText = "Monto menor al total";
+                changeDisplay.className = "text-xs font-bold text-red-600 mt-1";
+            }
+        }
+
+        function showModal(title, message, isError = false) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            const icon = document.getElementById('modalIcon');
+            if(isError) {
+                icon.className = "w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner";
+                icon.innerText = "✕";
+            } else {
+                icon.className = "w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner";
+                icon.innerText = "✓";
+            }
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('customModal').classList.add('hidden'); }
+        function openImageModal(base64Url) { if (!base64Url) return; document.getElementById('modalImageFull').src = base64Url; document.getElementById('imageModal').classList.remove('hidden'); }
+        function closeImageModal() { document.getElementById('imageModal').classList.add('hidden'); document.getElementById('modalImageFull').src = ''; }
+
+        function switchImageSource(type) {
+            const btnFile = document.getElementById('tabImgFile');
+            const btnWeb = document.getElementById('tabImgWeb');
+            const btnAI = document.getElementById('tabImgAI');
+            const btnStudio = document.getElementById('tabImgStudio');
+            
+            const contFile = document.getElementById('imgSourceFileContainer');
+            const contWeb = document.getElementById('imgSourceWebContainer');
+            const contAI = document.getElementById('imgSourceAIContainer');
+            const contStudio = document.getElementById('imgSourceStudioContainer');
+
+            [btnFile, btnWeb, btnAI, btnStudio].forEach(btn => {
+                btn.className = "py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition";
+            });
+            contFile.classList.add('hidden');
+            contWeb.classList.add('hidden');
+            contAI.classList.add('hidden');
+            contStudio.classList.add('hidden');
+
+            if (type === 'file') {
+                btnFile.className = "py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-emerald-600 text-white transition shadow-sm";
+                contFile.classList.remove('hidden');
+            } else if (type === 'web') {
+                btnWeb.className = "py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-blue-600 text-white transition shadow-sm";
+                contWeb.classList.remove('hidden');
+                const prodName = document.getElementById('prodName').value.trim();
+                const webQueryField = document.getElementById('webImageQuery');
+                if (prodName && !webQueryField.value) { webQueryField.value = prodName; searchWebImages(); }
+            } else if (type === 'ai') {
+                btnAI.className = "py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-purple-600 text-white transition shadow-sm";
+                contAI.classList.remove('hidden');
+                const prodName = document.getElementById('prodName').value.trim();
+                const promptField = document.getElementById('aiImagePrompt');
+                if (prodName && !promptField.value) { promptField.value = `Professional commercial food photography of ${prodName}, authentic peruvian amazon dish, clean background`; }
+            } else if (type === 'studio') {
+                btnStudio.className = "py-2 px-1 text-[10px] md:text-[11px] font-bold rounded-xl bg-amber-600 text-white transition shadow-sm";
+                contStudio.classList.remove('hidden');
+            }
+        }
+
+        function applyStudioFilters() {
+            const brightness = document.getElementById('studioBrightness').value;
+            const contrast = document.getElementById('studioContrast').value;
+            const imgPreview = document.getElementById('productPreviewImg');
+            imgPreview.style.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+        }
+
+        function applyStudioPreset(preset) {
+            const bInput = document.getElementById('studioBrightness');
+            const cInput = document.getElementById('studioContrast');
+            if (preset === 'gourmet') { bInput.value = 115; cInput.value = 125; }
+            else if (preset === 'vibrant') { bInput.value = 110; cInput.value = 135; }
+            applyStudioFilters();
+        }
+
+        function resetStudioFilters() {
+            document.getElementById('studioBrightness').value = 100;
+            document.getElementById('studioContrast').value = 100;
+            applyStudioFilters();
+        }
+
+        function handleFilePreview(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(uploadEvent) {
+                    currentSelectedImageUrl = uploadEvent.target.result;
+                    const imgPrev = document.getElementById('productPreviewImg');
+                    imgPrev.src = currentSelectedImageUrl;
+                    imgPrev.style.filter = 'none';
+                    document.getElementById('productPreviewWrapper').classList.remove('hidden');
+                    document.getElementById('finalProductImageUrl').value = currentSelectedImageUrl;
+                    resetStudioFilters();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function checkPeruvianSmartFill() {
+            const name = document.getElementById('prodName').value.trim().toLowerCase();
+            if (!name) return;
+            for (let key in baseDatosFiltrosCocona) {
+                if (name.includes(key)) {
+                    const item = baseDatosFiltrosCocona[key];
+                    document.getElementById('prodDesc').value = item.desc;
+                    document.getElementById('prodUnit').value = item.unit;
+                    document.getElementById('prodPrice').value = item.price;
+                    currentSelectedImageUrl = item.img;
+                    const imgPrev = document.getElementById('productPreviewImg');
+                    imgPrev.src = currentSelectedImageUrl;
+                    imgPrev.style.filter = 'none';
+                    document.getElementById('productPreviewWrapper').classList.remove('hidden');
+                    document.getElementById('finalProductImageUrl').value = currentSelectedImageUrl;
+                    resetStudioFilters();
+                    break;
+                }
+            }
+        }
+
+        function searchWebImages() {
+            const rawQuery = document.getElementById('webImageQuery').value.trim().toLowerCase();
+            if (!rawQuery) { showModal("Atención", "Por favor ingresa qué producto o plato deseas buscar.", true); return; }
+            const resultsContainer = document.getElementById('webImagesResults');
+            resultsContainer.innerHTML = `<p class="text-xs text-blue-600 col-span-3 text-center py-4 font-semibold"><i class="fa-solid fa-spinner fa-spin"></i> Buscando fotos...</p>`;
+
+            const bancoSeguro = {
+                cocona: ["https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&q=80", "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=400&q=80"],
+                juane: ["https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80", "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&q=80"],
+                tacacho: ["https://images.unsplash.com/photo-1626353675865-1f9e2b1686c1?w=400&q=80", "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&q=80"],
+                general: ["https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80", "https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?w=400&q=80", "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&q=80"]
+            };
+
+            setTimeout(() => {
+                let fotosEncontradas = bancoSeguro.general;
+                if (rawQuery.includes('cocona')) fotosEncontradas = bancoSeguro.cocona;
+                else if (rawQuery.includes('juane')) fotosEncontradas = bancoSeguro.juane;
+                else if (rawQuery.includes('tacacho') || rawQuery.includes('cecina')) fotosEncontradas = bancoSeguro.tacacho;
+
+                resultsContainer.innerHTML = fotosEncontradas.map((url) => `
+                    <div class="relative group cursor-pointer border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white hover:border-emerald-500 transition" onclick="selectWebImage(this, '${url}')">
+                        <img src="${url}" class="w-full h-24 object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-emerald-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-bold">Seleccionar ✓</div>
+                    </div>
+                `).join('');
+            }, 300);
+        }
+
+        function selectWebImage(element, imageUrl) {
+            const contenedor = document.getElementById('webImagesResults');
+            contenedor.querySelectorAll('div > div').forEach(div => div.parentElement.style.borderColor = "#e5e7eb");
+            element.style.borderColor = "#059669";
+            currentSelectedImageUrl = imageUrl;
+            const imgPrev = document.getElementById('productPreviewImg');
+            imgPrev.src = currentSelectedImageUrl;
+            imgPrev.style.filter = 'none';
+            document.getElementById('productPreviewWrapper').classList.remove('hidden');
+            document.getElementById('finalProductImageUrl').value = currentSelectedImageUrl;
+            resetStudioFilters();
+        }
+
+        function generateAIProductImage() {
+            const promptInput = document.getElementById('aiImagePrompt').value.trim();
+            if (!promptInput) { showModal("Atención", "Ingresa una descripción para la IA.", true); return; }
+            showModal("Generando...", "Creando foto con IA...", false);
+            const encodedPrompt = encodeURIComponent(promptInput + ", professional commercial food photography, high resolution");
+            const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}`;
+
+            const imgTest = new Image();
+            imgTest.crossOrigin = "anonymous";
+            imgTest.onload = function() {
+                closeModal();
+                currentSelectedImageUrl = aiImageUrl;
+                const imgPrev = document.getElementById('productPreviewImg');
+                imgPrev.src = currentSelectedImageUrl;
+                imgPrev.style.filter = 'none';
+                document.getElementById('productPreviewWrapper').classList.remove('hidden');
+                document.getElementById('finalProductImageUrl').value = aiImageUrl;
+                resetStudioFilters();
+                showModal("¡Creada con IA!", "Foto lista. Puedes aplicarle Efectos Estudio Pro.");
+            };
+            imgTest.onerror = function() { closeModal(); showModal("Error", "No se pudo conectar con el servicio de IA.", true); };
+            imgTest.src = aiImageUrl;
+        }
+
+        function clearProductImage() {
+            currentSelectedImageUrl = '';
+            document.getElementById('finalProductImageUrl').value = '';
+            document.getElementById('productPreviewWrapper').classList.add('hidden');
+            document.getElementById('prodImageFile').value = '';
+            document.getElementById('webImageQuery').value = '';
+            document.getElementById('aiImagePrompt').value = '';
+            document.getElementById('webImagesResults').innerHTML = `<p class="text-[11px] text-gray-400 col-span-3 text-center py-2">Escribe cualquier plato regional y pulsa Buscar.</p>`;
+            resetStudioFilters();
+        }
+
+        function handleUnifiedLogin(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('loginIdentifier').value.trim();
+            const pin = document.getElementById('loginPin').value.trim();
+
+            storesData = JSON.parse(localStorage.getItem('astoreeco_stores')) || [];
+            const foundStore = storesData.find(s => (String(s.ruc) === identifier || String(s.phone) === identifier) && String(s.pin) === pin);
+            
+            if (foundStore) {
+                currentLoggedStorePhone = foundStore.phone;
+                localStorage.setItem('astoreeco_current_store', currentLoggedStorePhone);
+                showStoreView(foundStore);
+                return;
+            }
+            showModal("Acceso Denegado", "Credenciales incorrectas.", true);
+        }
+
+        function getCurrentStoreRecord() { storesData = JSON.parse(localStorage.getItem('astoreeco_stores') || '[]'); return storesData.find(s => String(s.phone) === String(currentLoggedStorePhone)) || null; }
+        function renderStoreLogo() {
+            const store = getCurrentStoreRecord(), logo = store && store.logo ? store.logo : '';
+            const p = document.getElementById('storeLogoPreview'), ph = document.getElementById('storeLogoPlaceholder'), hb = document.getElementById('storeLogoHeaderBox'), st = document.getElementById('storeLogoHeaderStatus'), msg = document.getElementById('storeLogoMessage');
+            if(p){p.src=logo;p.classList.toggle('hidden',!logo);} if(ph) ph.classList.toggle('hidden',!!logo); if(hb) hb.innerHTML=logo?`<img src="${logo}" alt="Logo" class="w-full h-full object-contain p-1">`:'<span class="text-2xl">🏪</span>'; if(st) st.textContent=logo?'Logo agregado correctamente':'Sin logo agregado'; if(msg) msg.textContent=logo?'Tu logo está guardado en este comercio.':'';
+        }
+        function handleStoreLogoUpload(event) { 
+            const file = event.target.files && event.target.files[0]; 
+            if(!file) return; 
+            if(!['image/png','image/jpeg','image/svg+xml'].includes(file.type)){showModal('Formato no válido','Selecciona PNG, JPG o SVG.',true);event.target.value='';return;} 
+            if(file.size>2*1024*1024){showModal('Archivo demasiado grande','El logo debe pesar como máximo 2 MB.',true);event.target.value='';return;} 
+            const reader = new FileReader(); 
+            reader.onload = e => {
+                storesData = JSON.parse(localStorage.getItem('astoreeco_stores')||'[]');
+                const i = storesData.findIndex(x=>String(x.phone)===String(currentLoggedStorePhone));
+                if(i<0)return;
+                storesData[i].logo = e.target.result;
+                localStorage.setItem('astoreeco_stores',JSON.stringify(storesData));
+                renderStoreLogo();
+                showModal('Logo guardado','El logo del negocio se actualizó correctamente.');
+            }; 
+            reader.readAsDataURL(file); 
+            event.target.value=''; 
+        }
+        function removeStoreLogo() { 
+            storesData = JSON.parse(localStorage.getItem('astoreeco_stores')||'[]');
+            const i = storesData.findIndex(x=>String(x.phone)===String(currentLoggedStorePhone));
+            if(i<0)return;
+            if(!storesData[i].logo){showModal('Sin logo','Este comercio todavía no tiene un logo agregado.',true);return;}
+            storesData[i].logo='';
+            localStorage.setItem('astoreeco_stores',JSON.stringify(storesData));
+            renderStoreLogo();
+            showModal('Logo eliminado','Se eliminó el logo del negocio.'); 
+        }
+
+        function showStoreView(store) {
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-store-panel').classList.remove('hidden');
+            document.getElementById('headerUserBox').classList.remove('hidden');
+            document.getElementById('headerUserBox').classList.add('flex');
+            document.getElementById('headerUserName').innerText = store.name;
+            document.getElementById('storePanelName').innerText = store.name;
+            document.getElementById('storePanelCategory').innerText = store.category;
+            document.getElementById('storePanelPhone').innerText = store.phone;
+            document.getElementById('storePanelAddress').innerText = store.address;
+            renderStoreLogo();
+            switchStoreTab('emit');
+            updateDashboardMetrics();
+        }
+
+        function logout() {
+            currentLoggedStorePhone = null;
+            localStorage.removeItem('astoreeco_current_store');
+            document.getElementById('headerUserBox').classList.add('hidden');
+            document.getElementById('view-store-panel').classList.add('hidden');
+            document.getElementById('view-login').classList.remove('hidden');
+        }
+
+        function switchStoreTab(tab) {
+            ['sec-store-emit', 'sec-store-clients', 'sec-store-products', 'sec-store-drivers', 'sec-store-map', 'sec-store-logo'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            ['btn-store-emit', 'btn-store-clients', 'btn-store-products', 'btn-store-drivers', 'btn-store-map', 'btn-store-logo'].forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if(btn) btn.className = "py-2.5 px-4 font-semibold text-gray-500 focus:outline-none transition text-sm whitespace-nowrap";
+            });
+
+            const activeSec = document.getElementById('sec-store-' + tab);
+            const activeBtn = document.getElementById('btn-store-' + tab);
+            if (activeSec) activeSec.classList.remove('hidden');
+            if (activeBtn) activeBtn.className = "py-2.5 px-4 font-semibold text-emerald-700 border-b-2 border-emerald-700 focus:outline-none transition text-sm whitespace-nowrap";
+
+            if (tab === 'emit') { loadOrderDrivers(); }
+            if (tab === 'clients') { renderClientOrders(); }
+            if (tab === 'products') { renderStoreProducts(); }
+            if (tab === 'drivers') { renderStoreDrivers(); }
+            if (tab === 'map') { initStoreDriverMap(); refreshStoreDriverMap(); }
+            if (tab === 'logo') { renderStoreLogo(); }
+            updateDashboardMetrics();
+        }
+
+        // MAPA EN TIEMPO REAL DE REPARTIDORES
+        let storeDriverMap = null;
+        let storeDriverMarkers = {};
+        let storeDriverMapTimer = null;
+
+        function initStoreDriverMap() {
+            const el = document.getElementById('storeDriverMap');
+            if (!el || typeof L === 'undefined') return;
+            if (!storeDriverMap) {
+                storeDriverMap = L.map(el).setView([-8.3791, -74.5539], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19, attribution: '&copy; OpenStreetMap'
+                }).addTo(storeDriverMap);
+            }
+            setTimeout(() => storeDriverMap.invalidateSize(), 100);
+            if (storeDriverMapTimer) clearInterval(storeDriverMapTimer);
+            storeDriverMapTimer = setInterval(() => {
+                if (!document.getElementById('sec-store-map')?.classList.contains('hidden')) refreshStoreDriverMap();
+            }, 5000);
+        }
+
+        function getDriverActiveOrders(driver) {
+            const orders = JSON.parse(localStorage.getItem('astoreeco_orders') || '[]');
+            const driverId = String(driver?.id || '');
+            const driverPhone = String(driver?.phone || driver?.celular || '');
+            return orders.filter(o => {
+                if (String(o.storePhone || '') !== String(currentLoggedStorePhone)) return false;
+                const assignedId = String(o.driverId || o.assignedDriverId || o.deliveryDriverId || '');
+                const assignedPhone = String(o.driverPhone || o.assignedDriverPhone || o.deliveryDriverPhone || '');
+                const assigned = (driverId && assignedId === driverId) || (driverPhone && assignedPhone === driverPhone);
+                if (!assigned) return false;
+                return !['Entregado', 'Cancelado', 'Completado'].includes(String(o.status || ''));
+            });
+        }
+
+        function getOrderDestination(order) {
+            const lat = Number(order?.deliveryLat ?? order?.destinationLat ?? order?.latitude ?? order?.lat);
+            const lng = Number(order?.deliveryLng ?? order?.destinationLng ?? order?.longitude ?? order?.lng);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) return {lat, lng};
+            return null;
+        }
+
+        function mapsAddressUrl(address) {
+            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address || '');
+        }
+
+        function refreshStoreDriverMap() {
+            const mapEl = document.getElementById('storeDriverMap');
+            if (!mapEl || mapEl.classList.contains('hidden')) return;
+            if (!storeDriverMap) initStoreDriverMap();
+            const mine = getMyStoreDrivers();
+            const now = Date.now();
+            const ONLINE_MS = 2 * 60 * 1000;
+            const withGps = mine.filter(d => d.currentLocation && Number.isFinite(Number(d.currentLocation.lat)) && Number.isFinite(Number(d.currentLocation.lng)));
+            const online = withGps.filter(d => now - Number(d.lastActive || d.currentLocation.timestamp || 0) <= ONLINE_MS);
+            const offline = mine.filter(d => !online.some(x => String(x.id) === String(d.id)));
+
+            document.getElementById('mapOnlineCount').textContent = online.length;
+            document.getElementById('mapGpsCount').textContent = withGps.length;
+            document.getElementById('mapOfflineCount').textContent = offline.length;
+            document.getElementById('mapTotalCount').textContent = mine.length;
+            document.getElementById('mapLiveStatus').textContent = `Actualizado ${new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+
+            Object.keys(storeDriverMarkers).forEach(id => {
+                if (!withGps.some(d => String(d.id) === String(id))) { storeDriverMap.removeLayer(storeDriverMarkers[id]); delete storeDriverMarkers[id]; }
+            });
+            if (!window.storeDriverDestinationMarkers) window.storeDriverDestinationMarkers = {};
+            if (!window.storeDriverRoutes) window.storeDriverRoutes = {};
+
+            withGps.forEach(d => {
+                const lat = Number(d.currentLocation.lat), lng = Number(d.currentLocation.lng);
+                const isOnline = online.some(x => String(x.id) === String(d.id));
+                const activeOrders = getDriverActiveOrders(d);
+                const currentOrder = activeOrders[0] || null;
+                const destination = currentOrder ? getOrderDestination(currentOrder) : null;
+                const icon = L.divIcon({
+                    className: '', iconSize: [42,42], iconAnchor: [21,21],
+                    html: `<div style="width:42px;height:42px;border-radius:50%;background:${isOnline ? '#059669' : '#6b7280'};border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:white;font-size:19px;">🛵</div>`
+                });
+                const orderHtml = currentOrder ? `
+                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb">
+                        <strong>📦 Pedido en curso</strong><br>
+                        <span>👤 ${escapeHtmlMap(currentOrder.clientName || 'Cliente')}</span><br>
+                        <span>📍 ${escapeHtmlMap(currentOrder.address || 'Dirección no registrada')}</span><br>
+                        <span>🟢 Estado: ${escapeHtmlMap(currentOrder.status || 'Pendiente')}</span>
+                        <br><a href="${mapsAddressUrl(currentOrder.address || '')}" target="_blank" style="color:#2563eb;font-weight:700">Abrir destino</a>
+                    </div>` : `<div style="margin-top:8px;color:#6b7280">Sin pedido activo asignado</div>`;
+                const popup = `<div style="min-width:230px"><strong>${escapeHtmlMap(d.name || 'Repartidor')}</strong><br><span>${escapeHtmlMap(d.vehicle || 'Moto')}</span><br><span>📱 ${escapeHtmlMap(d.phone || '')}</span><br><span style="color:${isOnline?'#059669':'#6b7280'};font-weight:700">${isOnline ? '● En línea' : '● Sin actualización reciente'}</span><br><small>GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}</small>${orderHtml}</div>`;
+                if (!storeDriverMarkers[d.id]) {
+                    storeDriverMarkers[d.id] = L.marker([lat,lng], {icon}).addTo(storeDriverMap).bindPopup(popup);
+                } else {
+                    storeDriverMarkers[d.id].setLatLng([lat,lng]).setIcon(icon).setPopupContent(popup);
+                }
+
+                const oldDest = window.storeDriverDestinationMarkers[d.id];
+                const oldRoute = window.storeDriverRoutes[d.id];
+                if (oldDest) storeDriverMap.removeLayer(oldDest);
+                if (oldRoute) storeDriverMap.removeLayer(oldRoute);
+                delete window.storeDriverDestinationMarkers[d.id];
+                delete window.storeDriverRoutes[d.id];
+                if (destination && currentOrder) {
+                    const destIcon = L.divIcon({
+                        className: '', iconSize: [34,34], iconAnchor: [17,17],
+                        html: `<div style="width:34px;height:34px;border-radius:50%;background:#dc2626;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;color:white;font-size:15px;">📍</div>`
+                    });
+                    window.storeDriverDestinationMarkers[d.id] = L.marker([destination.lat, destination.lng], {icon: destIcon})
+                        .addTo(storeDriverMap)
+                        .bindPopup(`<div style="min-width:200px"><strong>📍 Destino del pedido</strong><br>👤 ${escapeHtmlMap(currentOrder.clientName || 'Cliente')}<br>${escapeHtmlMap(currentOrder.address || 'Dirección no registrada')}<br><a href="${mapsAddressUrl(currentOrder.address || '')}" target="_blank" style="color:#2563eb;font-weight:700">Abrir en Google Maps</a></div>`);
+                    window.storeDriverRoutes[d.id] = L.polyline([[lat,lng],[destination.lat,destination.lng]], {color:'#2563eb', weight:4, dashArray:'8 8', opacity:.75}).addTo(storeDriverMap);
+                }
+            });
+
+            const list = document.getElementById('storeDriverMapList');
+            list.innerHTML = mine.length ? mine.map(d => {
+                const loc = d.currentLocation;
+                const has = loc && Number.isFinite(Number(loc.lat)) && Number.isFinite(Number(loc.lng));
+                const isOnline = has && now - Number(d.lastActive || loc.timestamp || 0) <= ONLINE_MS;
+                const activeOrders = getDriverActiveOrders(d);
+                const currentOrder = activeOrders[0];
+                const orderInfo = currentOrder
+                    ? `<span class="block text-[11px] text-blue-700 font-semibold mt-1">📦 ${escapeHtmlMap(currentOrder.clientName || 'Cliente')} · ${escapeHtmlMap(currentOrder.address || 'Dirección no registrada')}</span>`
+                    : '<span class="block text-[11px] text-gray-400 mt-1">Sin pedido activo asignado</span>';
+                return `<button type="button" onclick="focusStoreDriverOnMap('${String(d.id).replace(/'/g,"\\'")}')" class="w-full text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl p-3 flex items-center justify-between gap-3 transition">
+                    <span class="flex items-center gap-3"><span class="w-9 h-9 rounded-full ${isOnline?'bg-emerald-100 text-emerald-700':'bg-gray-200 text-gray-500'} flex items-center justify-center">🛵</span><span><strong class="text-sm text-gray-800">${escapeHtmlMap(d.name || 'Repartidor')}</strong><span class="block text-[11px] text-gray-500">${has ? `${Number(loc.lat).toFixed(5)},${Number(loc.lng).toFixed(5)}` : 'Sin ubicación GPS'}</span>${orderInfo}</span></span>
+                    <span class="text-[10px] font-bold ${isOnline?'text-emerald-700':'text-gray-500'}">${isOnline?'EN LÍNEA':'SIN SEÑAL'}</span>
+                </button>`;
+            }).join('') : '<div class="text-center py-6 text-sm text-gray-500 bg-gray-50 rounded-xl border border-dashed">No hay repartidores registrados en este comercio.</div>';
+
+            const points = withGps.map(d => [Number(d.currentLocation.lat), Number(d.currentLocation.lng)]);
+            const destinations = mine.map(d => getOrderDestination(getDriverActiveOrders(d)[0])).filter(Boolean).map(x => [x.lat,x.lng]);
+            const allPoints = points.concat(destinations);
+            if (allPoints.length === 1) storeDriverMap.setView(allPoints[0], 16);
+            else if (allPoints.length > 1) storeDriverMap.fitBounds(allPoints, {padding:[30,30], maxZoom:16});
+        }
+
+        function focusStoreDriverOnMap(id) {
+            const d = getMyStoreDrivers().find(x => String(x.id) === String(id));
+            if (!d || !d.currentLocation || !storeDriverMap) return;
+            const pos = [Number(d.currentLocation.lat), Number(d.currentLocation.lng)];
+            storeDriverMap.setView(pos, 17);
+            if (storeDriverMarkers[id]) storeDriverMarkers[id].openPopup();
+        }
+
+        function escapeHtmlMap(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+        }
+
+        // GESTIÓN DE REPARTIDORES POR COMERCIO
+        function getMyStoreDrivers() {
+            driversData = JSON.parse(localStorage.getItem('astoreeco_drivers') || '[]');
+            return driversData.filter(d => String(d.storePhone || d.storeId || '') === String(currentLoggedStorePhone));
+        }
+
+        function openDriverForm(driverId = '') {
+            const form = document.getElementById('driverForm');
+            form.classList.remove('hidden');
+            document.getElementById('editingDriverId').value = '';
+            document.getElementById('driverName').value = '';
+            document.getElementById('driverPhone').value = '';
+            document.getElementById('driverDni').value = '';
+            document.getElementById('driverPin').value = '';
+            document.getElementById('driverVehicle').value = 'Moto';
+            document.getElementById('driverStatus').value = 'Activo';
+            if (driverId) {
+                const d = getMyStoreDrivers().find(x => String(x.id) === String(driverId));
+                if (d) {
+                    document.getElementById('editingDriverId').value = d.id;
+                    document.getElementById('driverName').value = d.name || d.nombre || '';
+                    document.getElementById('driverPhone').value = d.phone || d.celular || '';
+                    document.getElementById('driverDni').value = d.dni || '';
+                    document.getElementById('driverPin').value = d.pin || '';
+                    document.getElementById('driverVehicle').value = d.vehicle || 'Moto';
+                    document.getElementById('driverStatus').value = d.status || 'Activo';
+                }
+            }
+            form.scrollIntoView({behavior:'smooth', block:'nearest'});
+        }
+
+        function closeDriverForm() { document.getElementById('driverForm').classList.add('hidden'); }
+
+        function saveStoreDriver(e) {
+            e.preventDefault();
+            const id = document.getElementById('editingDriverId').value;
+            const driver = { id: id || ('drv_' + Date.now()), storePhone: currentLoggedStorePhone, name: document.getElementById('driverName').value.trim(), phone: document.getElementById('driverPhone').value.trim(), dni: document.getElementById('driverDni').value.trim(), pin: document.getElementById('driverPin').value.trim(), vehicle: document.getElementById('driverVehicle').value, status: document.getElementById('driverStatus').value };
+            driversData = JSON.parse(localStorage.getItem('astoreeco_drivers') || '[]');
+            const idx = driversData.findIndex(d => String(d.id) === String(id) && String(d.storePhone || '') === String(currentLoggedStorePhone));
+            if (idx >= 0) driversData[idx] = {...driversData[idx], ...driver}; else driversData.push(driver);
+            localStorage.setItem('astoreeco_drivers', JSON.stringify(driversData));
+            closeDriverForm();
+            renderStoreDrivers();
+            showModal('¡Repartidor guardado!', 'El repartidor quedó registrado en este comercio.');
+        }
+
+        function editStoreDriver(id) { openDriverForm(id); }
+
+        function deleteStoreDriver(id) {
+            driversData = JSON.parse(localStorage.getItem('astoreeco_drivers') || '[]');
+            driversData = driversData.filter(d => !(String(d.id) === String(id) && String(d.storePhone || '') === String(currentLoggedStorePhone)));
+            localStorage.setItem('astoreeco_drivers', JSON.stringify(driversData));
+            renderStoreDrivers();
+        }
+
+        function renderStoreDrivers() {
+            const container = document.getElementById('storeDriversTableBody');
+            if (!container) return;
+            const mine = getMyStoreDrivers();
+            if (!mine.length) { container.innerHTML = '<div class="text-center py-8 bg-gray-50 rounded-2xl border border-dashed"><div class="text-4xl mb-2">🛵</div><p class="font-bold text-gray-700">Aún no tienes repartidores registrados</p><p class="text-xs text-gray-500 mt-1">Pulsa “Registrar Repartidor” para agregar el primero.</p></div>'; return; }
+            container.innerHTML = mine.map(d => `<div class="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col md:flex-row justify-between gap-3 items-start md:items-center"><div><div class="flex items-center gap-2 flex-wrap"><h4 class="font-bold text-gray-900">${d.name || d.nombre || 'Repartidor'}</h4><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${d.status === 'Activo' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}">${d.status || 'Activo'}</span></div><p class="text-xs text-gray-600 mt-1">📱 ${d.phone || d.celular || '-'} · 🪪 DNI: ${d.dni || '-'} · ${d.vehicle || 'Moto'} · 🔐 Login habilitado</p></div><div class="flex gap-2"><button onclick="editStoreDriver('${d.id}')" class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded-xl text-xs font-bold">Editar</button><button onclick="deleteStoreDriver('${d.id}')" class="bg-red-50 text-red-700 border border-red-200 px-3 py-2 rounded-xl text-xs font-bold">Eliminar</button></div></div>`).join('');
+        }
+
+        function loadOrderDrivers() {
+            const sel = document.getElementById('orderDriverSelect');
+            if (!sel) return;
+            const mine = getMyStoreDrivers().filter(d => (d.status || 'Activo') === 'Activo');
+            sel.innerHTML = '<option value="">Selecciona un repartidor...</option>' + mine.map(d => `<option value="${d.id}" data-phone="${d.phone || d.celular || ''}">${d.name || d.nombre || 'Repartidor'} · ${d.vehicle || 'Moto'}</option>`).join('');
+            if (!mine.length) sel.innerHTML = '<option value="">Primero registra un repartidor</option>';
+        }
+
+        // EMITIR PEDIDO MANUAL
+        function handleOrderSubmit(e) {
+            e.preventDefault();
+            const clientName = document.getElementById('orderClientName').value;
+            const clientPhone = document.getElementById('orderClientPhone').value;
+            const address = document.getElementById('orderAddress').value;
+            const items = document.getElementById('orderItemsDesc').value;
+            const total = parseFloat(document.getElementById('orderTotal').value);
+            const paymentMethod = document.getElementById('orderPaymentMethod').value;
+            const driverSelect = document.getElementById('orderDriverSelect');
+            const selectedDriver = driverSelect && driverSelect.selectedOptions[0] ? driverSelect.selectedOptions[0] : null;
+            const driverId = driverSelect ? driverSelect.value : '';
+            const driverPhone = selectedDriver ? (selectedDriver.dataset.phone || '') : '';
+            const driverName = selectedDriver ? selectedDriver.textContent.split(' · ')[0] : '';
+
+            const newOrder = {
+                id: Date.now(),
+                storePhone: currentLoggedStorePhone,
+                clientName,
+                clientPhone,
+                address,
+                items,
+                total,
+                paymentMethod,
+                driverId,
+                driverPhone,
+                driverName,
+                status: 'Pendiente',
+                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            ordersData.push(newOrder);
+            localStorage.setItem('astoreeco_orders', JSON.stringify(ordersData));
+
+            showModal('¡Pedido Emitido!', `Pedido registrado correctamente. Pago con ${paymentMethod}.`);
+            document.getElementById('orderForm').reset();
+            document.getElementById('orderChangeDisplay').innerText = "S/ 0.00";
+            updateDashboardMetrics();
+            switchStoreTab('clients'); // Te lleva automáticamente a la pestaña de pedidos para verificarlo
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            ordersData = ordersData.map(o => {
+                if (o.id === orderId) o.status = newStatus;
+                return o;
+            });
+            localStorage.setItem('astoreeco_orders', JSON.stringify(ordersData));
+            renderClientOrders();
+            updateDashboardMetrics();
+        }
+
+        function renderClientOrders() {
+            ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            const container = document.getElementById('clientOrdersContainer');
+            const myOrders = ordersData.filter(o => String(o.storePhone || '') === String(currentLoggedStorePhone || ''));
+
+            if (myOrders.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">No hay pedidos de clientes registrados aún.</p>';
+                return;
+            }
+
+            container.innerHTML = myOrders.map(o => `
+                <div class="bg-gray-50 border p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-sm">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-gray-900 text-sm">${o.clientName} (${o.clientPhone})</h4>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800">${o.paymentMethod}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${o.status === 'Pendiente' ? 'bg-amber-100 text-amber-800' : o.status === 'Preparando' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'}">${o.status}</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1"><i class="fa-solid fa-location-dot text-emerald-600"></i> ${o.address}</p>
+                        <p class="text-xs font-semibold text-gray-800 mt-0.5">📦 ${o.items} — <span class="text-emerald-700">S/ ${o.total.toFixed(2)}</span></p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <select onchange="updateOrderStatus(${o.id}, this.value)" class="text-xs border rounded-xl p-1.5 bg-white font-medium">
+                            <option value="Pendiente" ${o.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="Preparando" ${o.status === 'Preparando' ? 'selected' : ''}>Preparando</option>
+                            <option value="Entregado" ${o.status === 'Entregado' ? 'selected' : ''}>Entregado</option>
+                        </select>
+                        <a href="https://wa.me/51${o.clientPhone}?text=Hola%20${encodeURIComponent(o.clientName)},%20tu%20pedido%20en%20ASTORE%20ECO%20está%20${encodeURIComponent(o.status)}." target="_blank" class="bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1 shadow-sm">
+                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // MÉTRICAS DEL MINI-DASHBOARD
+        function updateDashboardMetrics() {
+            ordersData = JSON.parse(localStorage.getItem('astoreeco_orders')) || [];
+            productsData = JSON.parse(localStorage.getItem('astoreeco_products')) || [];
+
+            const myOrders = ordersData.filter(o => String(o.storePhone || '') === String(currentLoggedStorePhone || ''));
+            const myProds = productsData.filter(p => String(p.storePhone || '') === String(currentLoggedStorePhone || ''));
+
+            const totalSales = myOrders.reduce((acc, curr) => acc + curr.total, 0);
+
+            document.getElementById('dashTotalSales').innerText = `S/ ${totalSales.toFixed(2)}`;
+            document.getElementById('dashTotalOrders').innerText = myOrders.length;
+            document.getElementById('dashTotalProducts').innerText = myProds.length;
+        }
+
+        // CREAR O ACTUALIZAR PRODUCTO
+        function handleProductSubmit(e) {
+            e.preventDefault();
+            const editingId = document.getElementById('editingProductId').value;
+            const name = document.getElementById('prodName').value;
+            const price = parseFloat(document.getElementById('prodPrice').value);
+            const stock = parseInt(document.getElementById('prodStock').value) || 0;
+            const unit = document.getElementById('prodUnit').value;
+            const desc = document.getElementById('prodDesc').value;
+            const imageUrl = document.getElementById('finalProductImageUrl').value;
+            const subproducts = [...currentSubproductsList];
+
+            if (editingId) {
+                productsData = productsData.map(p => {
+                    if (p.id == editingId) { return { ...p, name, price, stock, unit, desc, image: imageUrl, subproducts }; }
+                    return p;
+                });
+                showModal('¡Actualizado!', `El producto "${name}" se actualizó correctamente.`);
+            } else {
+                const product = { id: Date.now(), storePhone: currentLoggedStorePhone, name, price, stock, unit, desc, image: imageUrl, subproducts };
+                productsData.push(product);
+                showModal('¡Registrado!', `El producto "${name}" se guardó con éxito.`);
+            }
+
+            localStorage.setItem('astoreeco_products', JSON.stringify(productsData));
+            resetProductForm();
+            renderStoreProducts();
+            updateDashboardMetrics();
+        }
+
+        function editProduct(productId) {
+            const product = productsData.find(p => p.id === productId);
+            if (!product) return;
+
+            document.getElementById('editingProductId').value = product.id;
+            document.getElementById('prodName').value = product.name;
+            document.getElementById('prodPrice').value = product.price;
+            document.getElementById('prodStock').value = product.stock;
+            document.getElementById('prodUnit').value = product.unit;
+            document.getElementById('prodDesc').value = product.desc || '';
+            document.getElementById('finalProductImageUrl').value = product.image || '';
+
+            currentSubproductsList = product.subproducts ? [...product.subproducts] : [];
+            renderFormSubproducts();
+
+            if (product.image) {
+                currentSelectedImageUrl = product.image;
+                const imgPrev = document.getElementById('productPreviewImg');
+                imgPrev.src = product.image;
+                imgPrev.style.filter = 'none';
+                document.getElementById('productPreviewWrapper').classList.remove('hidden');
+            } else {
+                clearProductImage();
+            }
+
+            const submitBtn = document.getElementById('productSubmitBtn');
+            submitBtn.innerText = "Actualizar Producto";
+            submitBtn.className = "flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition text-sm shadow-md";
+            document.getElementById('productCancelBtn').classList.remove('hidden');
+            document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetProductForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('editingProductId').value = '';
+            document.getElementById('productSubmitBtn').innerText = "Guardar Producto";
+            document.getElementById('productSubmitBtn').className = "flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition text-sm shadow-md";
+            document.getElementById('productCancelBtn').classList.add('hidden');
+            clearProductImage();
+            currentSubproductsList = [];
+            renderFormSubproducts();
+            switchImageSource('file');
+        }
+
+        function deleteProduct(productId) {
+            productsData = productsData.filter(p => p.id !== productId);
+            localStorage.setItem('astoreeco_products', JSON.stringify(productsData));
+            renderStoreProducts();
+            updateDashboardMetrics();
+        }
+
+        function renderStoreProducts() {
+            productsData = JSON.parse(localStorage.getItem('astoreeco_products')) || [];
+            const container = document.getElementById('storeProductsTableBody');
+            const searchVal = document.getElementById('searchProductInput') ? document.getElementById('searchProductInput').value.toLowerCase() : '';
+            
+            let myProds = productsData.filter(p => String(p.storePhone || '') === String(currentLoggedStorePhone || ''));
+            if (searchVal) {
+                myProds = myProds.filter(p => p.name.toLowerCase().includes(searchVal) || (p.desc && p.desc.toLowerCase().includes(searchVal)));
+            }
+            
+            if (myProds.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">No hay productos registrados.</p>';
+                return;
+            }
+
+            container.innerHTML = myProds.map(p => `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80 gap-3 shadow-sm">
+                    <div class="flex items-center gap-3.5">
+                        ${p.image ? `
+                            <img src="${p.image}" class="w-14 h-14 object-cover rounded-xl border border-gray-300 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-95 transition" onclick="openImageModal('${p.image}')" title="Ampliar">
+                        ` : `
+                            <div class="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-inner">📦</div>
+                        `}
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm flex items-center gap-2 flex-wrap">
+                                ${p.name} 
+                                <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-extrabold border border-emerald-200">S/ ${p.price.toFixed(2)} / ${p.unit}</span>
+                                <span class="px-2 py-0.5 rounded-full ${p.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-700'} text-[11px] font-bold">Stock: ${p.stock}</span>
+                            </h4>
+                            <p class="text-xs text-gray-600 mt-1 leading-relaxed">${p.desc || 'Sin descripción.'}</p>
+                            ${p.subproducts && p.subproducts.length > 0 ? `
+                                <div class="flex flex-wrap gap-1.5 mt-2">
+                                    <span class="text-[10px] font-bold text-gray-500 uppercase self-center">Extras:</span>
+                                    ${p.subproducts.map(sp => `<span class="bg-emerald-50 text-emerald-800 text-[10px] px-2 py-0.5 rounded-md border border-emerald-200 font-medium">${sp.name} (+S/ ${sp.price.toFixed(2)})</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end">
+                        <button onclick="editProduct(${p.id})" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3.5 py-2 rounded-xl text-xs font-bold transition border border-blue-200/60 flex items-center gap-1">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar
+                        </button>
+                        <button onclick="deleteProduct(${p.id})" class="bg-red-50 text-red-600 hover:bg-red-100 px-3.5 py-2 rounded-xl text-xs font-bold transition border border-red-200/60 flex items-center gap-1">
+                            <i class="fa-solid fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
