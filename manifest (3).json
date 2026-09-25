@@ -1,0 +1,13 @@
+{
+  "background_color": "#26c922",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "ASTORE ECO",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "ASTORE",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "https://cdn-icons-png.flaticon.com/512/628/628329.png",
+  "description": "Del campo y ciudad a tu mesa"
+}
